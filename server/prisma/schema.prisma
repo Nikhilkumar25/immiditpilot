@@ -1,0 +1,198 @@
+// Prisma Schema — Immidit Medical Coordination Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ ENUMS ============
+
+enum Role {
+  patient
+  nurse
+  doctor
+  admin
+  lab
+}
+
+enum ServiceStatus {
+  pending_nurse_assignment
+  nurse_assigned
+  nurse_on_the_way
+  vitals_recorded
+  awaiting_doctor_review
+  doctor_completed
+  completed
+  cancelled
+}
+
+enum LabOrderStatus {
+  pending_patient_confirmation
+  pending_sample_collection
+  sample_collection_scheduled
+  sample_collected
+  sent_to_lab
+  report_ready
+  doctor_review_pending
+  lab_closed
+}
+
+enum TriageLevel {
+  mild
+  moderate
+  severe
+}
+
+// ============ MODELS ============
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String
+  role         Role
+  createdAt    DateTime @default(now())
+
+  // Relations
+  patientRequests ServiceRequest[] @relation("PatientServices")
+  nurseRequests   ServiceRequest[] @relation("NurseServices")
+  doctorRequests  ServiceRequest[] @relation("DoctorRequests")
+
+  patientLabOrders LabOrder[] @relation("PatientLabOrders")
+  doctorLabOrders  LabOrder[] @relation("DoctorLabOrders")
+
+  auditLogs AuditLog[]
+  savedAddresses SavedAddress[]
+}
+
+model ServiceRequest {
+  id            String   @id @default(uuid())
+  patientId     String
+  patient       User     @relation("PatientServices", fields: [patientId], references: [id])
+  symptoms      String
+  
+  // Service Details
+  serviceType   String
+  serviceCategory String?
+  isImmediate    Boolean   @default(false)
+  
+  // Location
+  location      String
+  locationDetails Json?    // Snapshot
+  addressId     String?
+  savedAddress  SavedAddress? @relation(fields: [addressId], references: [id])
+  
+  // Timing
+  scheduledTime DateTime
+  
+  // Assignment
+  nurseId       String?
+  nurse         User?    @relation("NurseServices", fields: [nurseId], references: [id])
+  doctorId      String?
+  doctor        User?    @relation("DoctorRequests", fields: [doctorId], references: [id])
+  
+  status        ServiceStatus   @default(pending_nurse_assignment)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clinicalReport ClinicalReport?
+  doctorAction   DoctorAction?
+  labOrders      LabOrder[]
+}
+
+model ClinicalReport {
+  id          String     @id @default(uuid())
+  serviceId   String     @unique
+  vitalsJson  Json
+  nurseNotes  String
+  attachments String[]
+  triageLevel TriageLevel
+  createdAt   DateTime   @default(now())
+
+  service ServiceRequest @relation(fields: [serviceId], references: [id])
+}
+
+model DoctorAction {
+  id              String   @id @default(uuid())
+  serviceId       String   @unique
+  diagnosis       String
+  prescriptionUrl String?
+  labRecommended  Boolean  @default(false)
+  referralNote    String?
+  followupDate    DateTime?
+  createdAt       DateTime @default(now())
+
+  service ServiceRequest @relation(fields: [serviceId], references: [id])
+}
+
+model LabOrder {
+  id             String         @id @default(uuid())
+  serviceId      String
+  patientId      String
+  doctorId       String
+  testsJson      Json
+  urgency        String
+  status         LabOrderStatus @default(pending_patient_confirmation)
+  collectionTime DateTime?
+  createdAt      DateTime       @default(now())
+
+  service  ServiceRequest @relation(fields: [serviceId], references: [id])
+  patient  User           @relation("PatientLabOrders", fields: [patientId], references: [id])
+  doctor   User           @relation("DoctorLabOrders", fields: [doctorId], references: [id])
+
+  labReport LabReport?
+}
+
+model SavedAddress {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  label        String   // Home, Work, Other
+  
+  // Structured Address
+  flatNumber   String?
+  buildingName String?
+  floor        String?
+  landmark     String?
+  area         String?
+  city         String?
+  pincode      String?
+  address      String   // Full formatted address string for display
+  
+  // Coordinates
+  lat          Float
+  lng          Float
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  ServiceRequests ServiceRequest[]
+}
+
+model LabReport {
+  id                String    @id @default(uuid())
+  labOrderId        String    @unique
+  reportUrl         String
+  doctorReviewNotes String?
+  reviewedAt        DateTime?
+  createdAt         DateTime  @default(now())
+
+  labOrder LabOrder @relation(fields: [labOrderId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  actionType String
+  entityType String
+  entityId   String
+  timestamp  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
