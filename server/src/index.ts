@@ -17,6 +17,7 @@ import labRoutes from './routes/labRoutes';
 import adminRoutes from './routes/adminRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import addressRoutes from './routes/addressRoutes';
+import ratingRoutes from './routes/ratingRoutes';
 
 export const prisma = new PrismaClient();
 const app = express();
@@ -28,7 +29,8 @@ export { io };
 
 // Middleware
 app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173', credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Health check
@@ -45,6 +47,7 @@ app.use('/api/lab', labRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/addresses', addressRoutes);
+app.use('/api/ratings', ratingRoutes);
 
 // Start
 const PORT = process.env.PORT || 3001;

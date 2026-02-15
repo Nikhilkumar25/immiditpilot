@@ -1,6 +1,7 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSocket } from '../context/SocketContext';
 import {
     LayoutDashboard, LogOut, User, Stethoscope, Heart, ShieldCheck,
     ClipboardList, FlaskConical, Calendar, Settings
@@ -47,8 +48,46 @@ const ROLE_COLORS: Record<string, string> = {
 
 export default function DashboardLayout({ children }: Props) {
     const { user, logout } = useAuth();
+    const { socket } = useSocket();
     const navigate = useNavigate();
     const location = useLocation();
+    const [badges, setBadges] = useState<Record<string, number>>({});
+
+    useEffect(() => {
+        if (!socket || !user) return;
+
+        const updateBadge = (path: string, delta: number) => {
+            setBadges(prev => ({
+                ...prev,
+                [path]: Math.max(0, (prev[path] || 0) + delta)
+            }));
+        };
+
+        // Patient notifications
+        socket.on('status_update', () => user.role === 'patient' && updateBadge('/patient', 1));
+
+        // Nurse notifications
+        socket.on('nurse_assigned', () => user.role === 'nurse' && updateBadge('/nurse', 1));
+
+        // Doctor notifications
+        socket.on('vitals_submitted', () => user.role === 'doctor' && updateBadge('/doctor', 1));
+        socket.on('report_uploaded', () => user.role === 'doctor' && updateBadge('/doctor', 1));
+
+        // Lab notifications
+        socket.on('lab_order_created', () => user.role === 'lab' && updateBadge('/lab', 1));
+
+        // Admin notifications
+        socket.on('new_service_request', () => user.role === 'admin' && updateBadge('/admin', 1));
+
+        return () => {
+            socket.off('status_update');
+            socket.off('nurse_assigned');
+            socket.off('vitals_submitted');
+            socket.off('report_uploaded');
+            socket.off('lab_order_created');
+            socket.off('new_service_request');
+        };
+    }, [socket, user]);
 
     if (!user) return null;
 
@@ -94,10 +133,14 @@ export default function DashboardLayout({ children }: Props) {
                 <nav style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     {navItems.map((item) => {
                         const isActive = location.pathname === item.path;
+                        const badge = badges[item.path];
                         return (
                             <button
                                 key={item.path}
-                                onClick={() => navigate(item.path)}
+                                onClick={() => {
+                                    setBadges(prev => ({ ...prev, [item.path]: 0 }));
+                                    navigate(item.path);
+                                }}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: '10px',
                                     padding: '10px 12px', borderRadius: 'var(--radius-md)',
@@ -105,11 +148,22 @@ export default function DashboardLayout({ children }: Props) {
                                     color: isActive ? 'white' : 'rgba(255,255,255,0.5)',
                                     border: 'none', cursor: 'pointer', fontSize: '0.875rem',
                                     fontWeight: isActive ? 600 : 400, textAlign: 'left',
-                                    transition: 'var(--transition)', width: '100%'
+                                    transition: 'var(--transition)', width: '100%',
+                                    position: 'relative'
                                 }}
                             >
                                 {item.icon}
                                 {item.label}
+                                {badge > 0 && (
+                                    <span style={{
+                                        position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                                        background: 'var(--critical)', color: 'white', fontSize: '10px',
+                                        padding: '2px 6px', borderRadius: '10px', minWidth: '18px',
+                                        textAlign: 'center', fontWeight: 700
+                                    }}>
+                                        {badge > 9 ? '9+' : badge}
+                                    </span>
+                                )}
                             </button>
                         );
                     })}

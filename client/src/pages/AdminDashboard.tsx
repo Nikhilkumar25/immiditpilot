@@ -133,7 +133,10 @@ export default function AdminDashboard() {
                                 <div key={s.id} className="card">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                                         <div>
-                                            <div style={{ fontWeight: 600 }}>{s.patient?.name} — {s.serviceType}</div>
+                                            <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                {s.patient?.name} — {s.serviceType}
+                                                {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
+                                            </div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{s.location}</div>
                                         </div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -161,7 +164,10 @@ export default function AdminDashboard() {
                         <div key={s.id} className="card">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 8 }}>
                                 <div>
-                                    <div style={{ fontWeight: 600 }}>{s.patient?.name} — {s.serviceType}</div>
+                                    <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                                        {s.patient?.name} — {s.serviceType}
+                                        {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
+                                    </div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                         Nurse: {s.nurse?.name || '—'} · Doctor: {s.doctor?.name || '—'}
                                     </div>

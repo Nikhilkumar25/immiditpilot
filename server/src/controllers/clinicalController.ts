@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { prisma, io } from '../index';
 import { AuthRequest } from '../middleware/auth';
 import { logAudit } from '../services/auditService';
+import { validateNurseSubmission, canAutoClose, getFlowConfig } from '../services/serviceFlowConfig';
 
 export async function submitClinicalReport(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -31,12 +32,31 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
             return;
         }
 
+        // ============ SERVICE-SPECIFIC VALIDATION ============
+        const validationErrors = validateNurseSubmission(
+            service.serviceType,
+            vitalsJson,
+            attachments || [],
+        );
+
+        if (validationErrors.length > 0) {
+            res.status(400).json({
+                error: 'Validation failed for service-specific requirements',
+                details: validationErrors,
+            });
+            return;
+        }
+
         // Check existing report
         const existing = await prisma.clinicalReport.findUnique({ where: { serviceId } });
         if (existing) {
             res.status(409).json({ error: 'Clinical report already submitted for this case' });
             return;
         }
+
+        // Determine next status: auto-close for Injection with no reaction, else await doctor
+        const shouldAutoClose = canAutoClose(service.serviceType, vitalsJson);
+        const nextStatus = shouldAutoClose ? 'doctor_completed' : 'awaiting_doctor_review';
 
         // Create report and update status in transaction
         const [report] = await prisma.$transaction([
@@ -51,7 +71,7 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
             }),
             prisma.serviceRequest.update({
                 where: { id: serviceId },
-                data: { status: 'awaiting_doctor_review' as any },
+                data: { status: nextStatus as any },
             }),
         ]);
 
@@ -59,11 +79,35 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
 
         // Emit events
         io.to(`service:${serviceId}`).emit('vitals_submitted', { serviceId, triageLevel });
-        io.to(`user:${service.patientId}`).emit('status_update', { serviceId, status: 'awaiting_doctor_review' });
-        io.to('role:doctor').emit('vitals_submitted', { serviceId, triageLevel });
-        io.to('role:admin').emit('vitals_submitted', { serviceId, triageLevel });
+        io.to(`user:${service.patientId}`).emit('status_update', { serviceId, status: nextStatus });
 
-        res.status(201).json(report);
+        if (shouldAutoClose) {
+            // Injection auto-closed — notify everyone
+            io.to(`user:${service.patientId}`).emit('status_update', { serviceId, status: 'doctor_completed' });
+            io.to('role:admin').emit('status_update', { serviceId, status: 'doctor_completed' });
+        } else {
+            // Normal flow — alert doctor
+            io.to('role:doctor').emit('vitals_submitted', { serviceId, triageLevel });
+            io.to('role:admin').emit('vitals_submitted', { serviceId, triageLevel });
+
+            // Emergency priority alert
+            const flowConfig = getFlowConfig(service.serviceType);
+            if (flowConfig?.isEmergency) {
+                io.to('role:doctor').emit('emergency_alert_triggered', {
+                    serviceId,
+                    serviceType: service.serviceType,
+                    severity: 'URGENT',
+                    message: `🚨 Emergency vitals submitted. Immediate review required.`,
+                });
+            }
+        }
+
+        res.status(201).json({
+            ...report,
+            autoClosedNote: shouldAutoClose
+                ? 'Routine injection with no adverse reaction — case auto-forwarded.'
+                : undefined,
+        });
     } catch (err) {
         console.error('Submit clinical report error:', err);
         res.status(500).json({ error: 'Failed to submit clinical report' });

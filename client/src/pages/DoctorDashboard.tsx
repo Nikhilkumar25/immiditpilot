@@ -103,9 +103,13 @@ export default function DoctorDashboard() {
                                                 <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                                                     {c.patient?.name}
                                                     <span className={`badge badge-${triage}`}>{triage}</span>
+                                                    {c.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                                                    {c.serviceType} · {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
+                                                    {c.serviceCategory || 'Service'} · {c.serviceType}
+                                                </div>
+                                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
+                                                    {formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
                                                 </div>
                                                 {/* Vitals snapshot */}
                                                 {vitals && (

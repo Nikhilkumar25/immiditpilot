@@ -1,21 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
-import { io } from 'socket.io-client';
+import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
+import api from '../services/api';
 import {
-    Activity,
-    Calendar,
     CheckCircle2,
     Clock,
     FileText,
-    MapPin,
     Microscope,
-    Search,
     Upload,
     User,
-    TestTube,
-    AlertCircle
+    AlertCircle,
+    Inbox,
+    RefreshCw,
+    X,
 } from 'lucide-react';
 
 interface LabOrder {
@@ -28,70 +26,52 @@ interface LabOrder {
     status: string;
     collectionTime: string | null;
     createdAt: string;
-    patient: {
-        id: string;
-        name: string;
-        phone?: string;
-    };
-    doctor: {
-        id: string;
-        name: string;
-    };
-    labReport?: {
-        id: string;
-        reportUrl: string;
-    };
+    patient: { id: string; name: string; phone?: string };
+    doctor: { id: string; name: string };
+    labReport?: { id: string; reportUrl: string };
 }
 
-const LabDashboard: React.FC = () => {
+const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
+    pending_sample_collection: { label: 'Awaiting Sample', cls: 'badge-warning' },
+    pending_patient_confirmation: { label: 'Patient Confirmation', cls: 'badge-info' },
+    sample_collected: { label: 'Sample Collected', cls: 'badge-primary' },
+    received_at_lab: { label: 'Received at Lab', cls: 'badge-success' },
+    report_ready: { label: 'Report Ready', cls: 'badge-mild' },
+    reviewed: { label: 'Reviewed', cls: 'badge-mild' },
+    lab_closed: { label: 'Closed', cls: '' },
+};
+
+export default function LabDashboard() {
     const { user } = useAuth();
+    const { socket } = useSocket();
     const { addToast } = useToast();
     const [orders, setOrders] = useState<LabOrder[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('all');
+    const [activeTab, setActiveTab] = useState<'pending' | 'completed'>('pending');
     const [selectedOrder, setSelectedOrder] = useState<LabOrder | null>(null);
     const [reportUrl, setReportUrl] = useState('');
     const [file, setFile] = useState<File | null>(null);
     const [uploading, setUploading] = useState(false);
 
-    useEffect(() => {
-        fetchOrders();
-
-        const socket = io('http://localhost:3001');
-        socket.on('connect', () => {
-            socket.emit('join_room', 'role:admin'); // Lab listens to admin channel for now, or we implement role:lab
-            // Ideally backend should have role:lab room
-        });
-
-        socket.on('lab_order_created', () => fetchOrders());
-        socket.on('status_update', () => fetchOrders());
-        socket.on('report_uploaded', () => fetchOrders());
-
-        return () => {
-            socket.disconnect();
-        };
+    const fetchOrders = useCallback(async () => {
+        try {
+            const res = await api.get('/lab/queue');
+            setOrders(res.data);
+        } catch (err) {
+            console.error('Failed to fetch lab queue:', err);
+        }
+        setLoading(false);
     }, []);
 
-    const fetchOrders = async () => {
-        try {
-            // For now, fetching all orders using a new endpoint we might need to add, 
-            // or just use the existing one if permissions allow.
-            // Actually, we should create a getLabQueue endpoint.
-            // Re-using getPatientLabOrders won't work.
-            // Let's assume we add an endpoint or use a filtered generic one.
-            // For MVP, if backend doesn't have it, we might need to add it.
-            // Checking labController... it has getNurseLabTasks, getDoctorLabReviews. 
-            // It lacks getLabQueue. I will add it to backend in next step.
-            // For now UI code:
-            const response = await api.get('/lab/queue');
-            setOrders(response.data);
-        } catch (error) {
-            console.error('Failed to fetch orders:', error);
-            // addToast('error', 'Failed to load lab queue');
-        } finally {
-            setLoading(false);
-        }
-    };
+    useEffect(() => { fetchOrders(); }, [fetchOrders]);
+
+    useEffect(() => {
+        if (!socket) return;
+        socket.on('lab_order_created', () => { addToast('info', 'New lab order'); fetchOrders(); });
+        socket.on('status_update', () => fetchOrders());
+        socket.on('report_uploaded', () => fetchOrders());
+        return () => { socket.off('lab_order_created'); socket.off('status_update'); socket.off('report_uploaded'); };
+    }, [socket, fetchOrders, addToast]);
 
     const handleUploadReport = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -100,207 +80,209 @@ const LabDashboard: React.FC = () => {
             addToast('error', 'Please select a file or enter a URL');
             return;
         }
-
         setUploading(true);
         try {
-            let finalReportUrl = reportUrl;
-
+            let finalUrl = reportUrl;
             if (file) {
                 const formData = new FormData();
                 formData.append('file', file);
                 const uploadRes = await api.post('/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' }
+                    headers: { 'Content-Type': 'multipart/form-data' },
                 });
-                finalReportUrl = uploadRes.data.url;
+                finalUrl = uploadRes.data.url;
             }
-
-            await api.post(`/lab/order/${selectedOrder.id}/report`, { reportUrl: finalReportUrl });
+            await api.post(`/lab/order/${selectedOrder.id}/report`, { reportUrl: finalUrl });
             addToast('success', 'Report uploaded successfully');
             setReportUrl('');
             setFile(null);
             setSelectedOrder(null);
             fetchOrders();
-        } catch (error) {
-            console.error('Upload failed:', error);
+        } catch (err) {
+            console.error('Upload failed:', err);
             addToast('error', 'Failed to upload report');
         } finally {
             setUploading(false);
         }
     };
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'pending_sample_collection': return 'text-orange-500 bg-orange-50 border-orange-200';
-            case 'sample_collected': return 'text-blue-500 bg-blue-50 border-blue-200';
-            case 'report_ready': return 'text-green-500 bg-green-50 border-green-200';
-            case 'lab_closed': return 'text-gray-500 bg-gray-50 border-gray-200';
-            default: return 'text-gray-500 bg-gray-50 border-gray-200';
+    const handleReceiveSample = async (id: string) => {
+        try {
+            await api.patch(`/lab/order/${id}/receive`);
+            addToast('success', 'Sample received at lab');
+            fetchOrders();
+        } catch (err) {
+            console.error('Failed to receive sample:', err);
+            addToast('error', 'Failed to confirm receipt');
         }
     };
 
-    const filteredOrders = orders.filter(order => {
-        if (filter === 'all') return true;
-        if (filter === 'pending') return ['pending_sample_collection', 'sample_collected'].includes(order.status);
-        if (filter === 'completed') return ['report_ready', 'lab_closed'].includes(order.status);
-        return true;
-    });
+    const pendingOrders = orders.filter(o => ['pending_sample_collection', 'pending_patient_confirmation', 'sample_collected', 'received_at_lab'].includes(o.status));
+    const completedOrders = orders.filter(o => ['report_ready', 'reviewed', 'lab_closed'].includes(o.status));
+    const displayOrders = activeTab === 'pending' ? pendingOrders : completedOrders;
 
-    if (loading) return <div className="p-8">Loading lab dashboard...</div>;
+    if (loading) return <div className="loading-page"><div className="spinner" /></div>;
 
     return (
-        <div className="space-y-6">
-            <header className="flex justify-between items-center mb-8">
+        <div>
+            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Lab Dashboard</h1>
-                    <p className="text-gray-500">Manage samples and reports</p>
+                    <h1 className="page-title">Lab Dashboard</h1>
+                    <p className="page-subtitle">{pendingOrders.length} pending · {completedOrders.length} completed</p>
                 </div>
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => setFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'all' ? 'bg-teal-600 text-white shadow-lg shadow-teal-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                    >
-                        All Orders
-                    </button>
-                    <button
-                        onClick={() => setFilter('pending')}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${filter === 'pending' ? 'bg-orange-600 text-white shadow-lg shadow-orange-200' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-                    >
-                        Pending Actions
-                    </button>
-                </div>
-            </header>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredOrders.map(order => (
-                    <div key={order.id} className="bg-white/80 backdrop-blur-xl rounded-2xl p-6 border border-white/50 shadow-sm hover:shadow-md transition-all">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(order.status)}`}>
-                                {order.status.replace(/_/g, ' ').toUpperCase()}
-                            </div>
-                            {order.urgency === 'high' && (
-                                <div className="flex items-center text-red-500 text-xs font-bold">
-                                    <AlertCircle size={14} className="mr-1" />
-                                    URGENT
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                                    <User size={20} />
-                                </div>
-                                <div>
-                                    <p className="font-semibold text-gray-800">{order.patient.name}</p>
-                                    <p className="text-xs text-gray-500">Ref: {order.doctor.name}</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-2">
-                                <div className="flex items-center text-gray-600">
-                                    <Microscope size={14} className="mr-2" />
-                                    <span className="font-medium">Tests:</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                    {Array.isArray(order.testsJson) && order.testsJson.map((test: any, i: number) => (
-                                        <span key={i} className="px-2 py-0.5 bg-white border border-gray-200 rounded text-xs text-gray-600">
-                                            {test.name || test}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
-                                <div className="text-xs text-gray-400">
-                                    {new Date(order.createdAt).toLocaleDateString()}
-                                </div>
-
-                                {order.status === 'sample_collected' && (
-                                    <button
-                                        onClick={() => setSelectedOrder(order)}
-                                        className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center shadow-lg shadow-indigo-200"
-                                    >
-                                        <Upload size={16} className="mr-2" />
-                                        Upload Report
-                                    </button>
-                                )}
-
-                                {order.status === 'report_ready' && (
-                                    <a
-                                        href={order.labReport?.reportUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="text-teal-600 text-sm font-medium flex items-center hover:underline"
-                                    >
-                                        <FileText size={16} className="mr-1" />
-                                        View Report
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                ))}
-
-                {filteredOrders.length === 0 && (
-                    <div className="col-span-full py-12 text-center text-gray-400">
-                        <Microscope size={48} className="mx-auto mb-4 opacity-50" />
-                        <p>No lab orders found for the selected filter.</p>
-                    </div>
-                )}
+                <button className="btn btn-secondary btn-sm" onClick={fetchOrders}><RefreshCw size={14} /> Refresh</button>
             </div>
+
+            {/* Tabs */}
+            <div className="tabs">
+                <button className={`tab ${activeTab === 'pending' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('pending')}>
+                    Pending ({pendingOrders.length})
+                </button>
+                <button className={`tab ${activeTab === 'completed' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('completed')}>
+                    Completed ({completedOrders.length})
+                </button>
+            </div>
+
+            {/* Orders */}
+            {displayOrders.length === 0 ? (
+                <div className="empty-state">
+                    <Inbox size={48} className="empty-state-icon" />
+                    <p>No {activeTab} orders.</p>
+                </div>
+            ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                    {displayOrders.map((order) => {
+                        const badge = STATUS_BADGES[order.status] || { label: order.status.replace(/_/g, ' '), cls: '' };
+                        return (
+                            <div key={order.id} className="card"
+                                style={{
+                                    borderLeft: order.urgency === 'high' ? '4px solid var(--critical)' : undefined,
+                                }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                    <div style={{ display: 'flex', gap: 'var(--space-md)', alignItems: 'center' }}>
+                                        <div style={{
+                                            width: 40, height: 40, borderRadius: 'var(--radius-md)',
+                                            background: 'var(--primary-bg)', display: 'flex', alignItems: 'center',
+                                            justifyContent: 'center', color: 'var(--primary)', flexShrink: 0,
+                                        }}>
+                                            <User size={18} />
+                                        </div>
+                                        <div>
+                                            <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                {order.patient?.name}
+                                                {order.urgency === 'high' && (
+                                                    <span className="badge badge-severe" style={{ fontSize: '0.688rem' }}>
+                                                        <AlertCircle size={10} /> URGENT
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                                Ref: Dr. {order.doctor?.name} · {new Date(order.createdAt).toLocaleDateString()}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                        <span className={`badge ${badge.cls}`}>{badge.label}</span>
+                                    </div>
+                                </div>
+
+                                {/* Tests */}
+                                <div style={{
+                                    marginTop: 'var(--space-md)', padding: 'var(--space-sm) var(--space-md)',
+                                    background: 'var(--bg)', borderRadius: 'var(--radius-md)', fontSize: '0.813rem',
+                                }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, color: 'var(--text-secondary)' }}>
+                                        <Microscope size={14} /> <strong>Tests:</strong>
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                        {Array.isArray(order.testsJson) && order.testsJson.map((test: any, i: number) => (
+                                            <span key={i} style={{
+                                                padding: '2px 8px', background: 'var(--card-bg)', border: '1px solid var(--border)',
+                                                borderRadius: 'var(--radius-sm)', fontSize: '0.75rem',
+                                            }}>
+                                                {test.name || test}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ marginTop: 'var(--space-md)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                                    {order.status === 'sample_collected' && (
+                                        <button className="btn btn-secondary btn-sm"
+                                            onClick={() => handleReceiveSample(order.id)}>
+                                            <CheckCircle2 size={14} /> Confirm Receipt
+                                        </button>
+                                    )}
+                                    {order.status === 'received_at_lab' && (
+                                        <button className="btn btn-primary btn-sm"
+                                            onClick={() => setSelectedOrder(order)}>
+                                            <Upload size={14} /> Upload Report
+                                        </button>
+                                    )}
+                                    {order.status === 'report_ready' && order.labReport?.reportUrl && (
+                                        <a href={order.labReport.reportUrl} target="_blank" rel="noopener noreferrer"
+                                            className="btn btn-secondary btn-sm">
+                                            <FileText size={14} /> View Report
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Upload Modal */}
             {selectedOrder && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-                        <h3 className="text-xl font-bold text-gray-800 mb-4">Upload Lab Report</h3>
-                        <p className="text-sm text-gray-500 mb-6">
-                            Upload report for <span className="font-medium text-gray-800">{selectedOrder.patient.name}</span>
+                <div style={{
+                    position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(4px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: 16,
+                }}>
+                    <div className="card" style={{ maxWidth: 440, width: '100%', position: 'relative' }}>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setSelectedOrder(null)}
+                            style={{ position: 'absolute', top: 12, right: 12 }}>
+                            <X size={18} />
+                        </button>
+
+                        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: 4 }}>Upload Lab Report</h3>
+                        <p style={{ fontSize: '0.813rem', color: 'var(--text-secondary)', marginBottom: 'var(--space-lg)' }}>
+                            Report for <strong>{selectedOrder.patient?.name}</strong>
                         </p>
 
-                        <form onSubmit={handleUploadReport} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Upload PDF Report</label>
-                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer relative">
-                                    <input
-                                        type="file"
-                                        accept=".pdf"
-                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                        onChange={e => setFile(e.target.files ? e.target.files[0] : null)}
-                                    />
-                                    <div className="flex flex-col items-center justify-center text-gray-400">
-                                        <Upload size={24} className="mb-2" />
-                                        <p className="text-sm">{file ? file.name : 'Click to select PDF or drag and drop'}</p>
-                                    </div>
+                        <form onSubmit={handleUploadReport}>
+                            <div className="form-group" style={{ marginBottom: 'var(--space-md)' }}>
+                                <label className="form-label">Upload File (PDF or Image)</label>
+                                <div style={{
+                                    border: '2px dashed var(--border)', borderRadius: 'var(--radius-md)',
+                                    padding: 'var(--space-lg)', textAlign: 'center', cursor: 'pointer',
+                                    position: 'relative', background: 'var(--bg)',
+                                }}>
+                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} />
+                                    <Upload size={24} color="var(--text-muted)" style={{ marginBottom: 8 }} />
+                                    <p style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>
+                                        {file ? file.name : 'Click to select file'}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="text-center text-gray-400 text-xs my-2">- OR -</div>
+                            <div style={{ textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)', margin: '8px 0' }}>— OR —</div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Report URL</label>
-                                <input
-                                    type="url"
-                                    className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 transition-all outline-none"
-                                    placeholder="https://"
-                                    value={reportUrl}
-                                    onChange={e => setReportUrl(e.target.value)}
-                                />
+                            <div className="form-group" style={{ marginBottom: 'var(--space-lg)' }}>
+                                <label className="form-label">Report URL</label>
+                                <input type="url" className="form-input" placeholder="https://..."
+                                    value={reportUrl} onChange={(e) => setReportUrl(e.target.value)} />
                             </div>
 
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedOrder(null)}
-                                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={uploading}
-                                    className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition-colors font-medium shadown-lg shadow-teal-200 disabled:opacity-50"
-                                >
+                            <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                                <button type="button" className="btn btn-secondary" style={{ flex: 1 }}
+                                    onClick={() => setSelectedOrder(null)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}
+                                    disabled={uploading}>
                                     {uploading ? 'Uploading...' : 'Submit Report'}
                                 </button>
                             </div>
@@ -310,6 +292,4 @@ const LabDashboard: React.FC = () => {
             )}
         </div>
     );
-};
-
-export default LabDashboard;
+}

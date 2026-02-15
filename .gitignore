@@ -1,6 +1,14 @@
 node_modules/
 dist/
+server/dist/
+client/dist/
 .env
+server/.env
 *.log
-uploads/*
-!uploads/.gitkeep
+server/uploads/*
+!server/uploads/.gitkeep
+.agent/
+server/backups/
+server/src/verify_*.ts
+server/src/get_patient.ts
+test_report.pdf

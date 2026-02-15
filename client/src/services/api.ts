@@ -42,15 +42,21 @@ export const authApi = {
 
 // ============ SERVICES ============
 export const serviceApi = {
-    create: (data: { serviceType: string; symptoms: string; location: string; scheduledTime: string }) =>
-        api.post('/services', data),
+    create: (data: {
+        serviceType: string; symptoms: string; location: string; scheduledTime: string;
+        addressId?: string; isImmediate?: boolean; serviceCategory?: string; locationDetails?: any;
+    }) => api.post('/services', data),
     getMy: () => api.get('/services/my'),
     getAssigned: () => api.get('/services/assigned'),
     getPendingReview: () => api.get('/services/pending-review'),
     getById: (id: string) => api.get(`/services/${id}`),
     updateStatus: (id: string, status: string) => api.patch(`/services/${id}/status`, { status }),
+    cancel: (id: string) => api.patch(`/services/${id}/cancel`),
     assignNurse: (id: string, nurseId: string) => api.patch(`/services/${id}/assign`, { nurseId }),
     getAll: () => api.get('/services/all'),
+    checkInstantCareAvailability: () => api.get('/services/instant-care/check'),
+    getFlowConfig: (serviceType: string) => api.get(`/services/flow-config/${serviceType}`),
+    getNurseStats: () => api.get('/services/stats/completed'),
 };
 
 // ============ CLINICAL ============
@@ -75,6 +81,7 @@ export const labApi = {
     getPatientOrders: (patientId: string) => api.get(`/lab/orders/patient/${patientId}`),
     getNurseTasks: () => api.get('/lab/orders/nurse'),
     getDoctorReviews: () => api.get('/lab/orders/doctor'),
+    receiveSample: (id: string) => api.patch(`/lab/order/${id}/receive`),
 };
 
 // ============ ADMIN ============
@@ -93,6 +100,13 @@ export const addressApi = {
     save: (data: any) => api.post('/addresses', data),
     getAll: () => api.get('/addresses'),
     delete: (id: string) => api.delete(`/addresses/${id}`),
+};
+
+// ============ RATINGS ============
+export const ratingApi = {
+    submit: (data: { serviceId: string; toUserId: string; score: number; category: string; comment?: string }) =>
+        api.post('/ratings', data),
+    getForUser: (userId: string) => api.get(`/ratings/user/${userId}`),
 };
 
 export default api;

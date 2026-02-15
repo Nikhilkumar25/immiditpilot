@@ -2,27 +2,66 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { serviceApi } from '../services/api';
 import CaseTracker from '../components/CaseTracker';
-import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '../context/ToastContext';
 
 export default function ServiceDetail() {
     const { id } = useParams<{ id: string }>();
     const [service, setService] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [cancelling, setCancelling] = useState(false);
+    const { addToast } = useToast();
     const navigate = useNavigate();
 
+    const fetchService = () => {
+        serviceApi.getById(id!)
+            .then((res) => setService(res.data))
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    };
+
     useEffect(() => {
-        serviceApi.getById(id!).then((res) => setService(res.data)).catch(console.error).finally(() => setLoading(false));
+        fetchService();
     }, [id]);
+
+    const handleCancel = async () => {
+        if (!confirm('Are you sure you want to cancel this visit?')) return;
+        setCancelling(true);
+        try {
+            await serviceApi.cancel(id!);
+            addToast('success', 'Visit cancelled');
+            fetchService();
+        } catch (err: any) {
+            addToast('error', err.response?.data?.error || 'Failed to cancel');
+        } finally {
+            setCancelling(false);
+        }
+    };
 
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
     if (!service) return <div className="empty-state"><p>Service not found.</p></div>;
 
+    const cancellableStatuses = ['pending_nurse_assignment', 'nurse_assigned'];
+    const canCancel = service.status && cancellableStatuses.includes(service.status);
+
     return (
         <div>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/patient')} style={{ marginBottom: 'var(--space-md)' }}>
-                <ArrowLeft size={16} /> Back
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/patient')}>
+                    <ArrowLeft size={16} /> Back
+                </button>
+                {canCancel && (
+                    <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={handleCancel}
+                        disabled={cancelling}
+                        style={{ color: 'var(--critical)', borderColor: 'var(--critical)' }}
+                    >
+                        <XCircle size={14} /> {cancelling ? 'Cancelling...' : 'Cancel Request'}
+                    </button>
+                )}
+            </div>
 
             <h1 className="page-title" style={{ marginBottom: 'var(--space-lg)' }}>{service.serviceType}</h1>
 

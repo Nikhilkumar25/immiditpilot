@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Component, ErrorInfo, ReactNode } from 'react';
+import React, { useState, useEffect, Component, ErrorInfo, ReactNode, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -51,6 +51,22 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
 
 const LocationMarker = ({ onSelect }: { onSelect: (lat: number, lng: number) => void }) => {
     const [position, setPosition] = useState<L.LatLng | null>(null);
+    const markerRef = useRef<L.Marker>(null);
+
+    const eventHandlers = useMemo(
+        () => ({
+            dragend() {
+                const marker = markerRef.current;
+                if (marker != null) {
+                    const newPos = marker.getLatLng();
+                    setPosition(newPos);
+                    onSelect(newPos.lat, newPos.lng);
+                }
+            },
+        }),
+        [onSelect],
+    );
+
     const map = useMapEvents({
         click(e) {
             setPosition(e.latlng);
@@ -60,8 +76,13 @@ const LocationMarker = ({ onSelect }: { onSelect: (lat: number, lng: number) => 
     });
 
     // Return empty fragment instead of null to be safe with react-leaflet v3+ types
-    return position === null ? <></> : (
-        <Marker position={position} />
+    return position === null ? null : (
+        <Marker
+            draggable={true}
+            eventHandlers={eventHandlers}
+            position={position}
+            ref={markerRef}
+        />
     );
 }
 

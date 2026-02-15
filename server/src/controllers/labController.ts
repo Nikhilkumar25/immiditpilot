@@ -121,6 +121,38 @@ export async function collectSample(req: AuthRequest, res: Response): Promise<vo
     }
 }
 
+export async function confirmSampleReceipt(req: AuthRequest, res: Response): Promise<void> {
+    try {
+        const id = req.params.id as string;
+        const order = await prisma.labOrder.findUnique({ where: { id } });
+
+        if (!order) {
+            res.status(404).json({ error: 'Lab order not found' });
+            return;
+        }
+
+        if (order.status !== 'sample_collected' && order.status !== 'sent_to_lab') {
+            res.status(400).json({ error: 'Order must be in sample_collected or sent_to_lab status' });
+            return;
+        }
+
+        const updated = await prisma.labOrder.update({
+            where: { id },
+            data: { status: 'received_at_lab' as any },
+        });
+
+        await logAudit(req.user!.id, 'RECEIVE_SAMPLE', 'LabOrder', id);
+
+        io.to('role:lab').emit('status_update', { labOrderId: id, status: 'received_at_lab' });
+        io.to('role:admin').emit('status_update', { labOrderId: id, status: 'received_at_lab' });
+
+        res.json(updated);
+    } catch (err) {
+        console.error('Confirm sample receipt error:', err);
+        res.status(500).json({ error: 'Failed to confirm sample receipt' });
+    }
+}
+
 export async function uploadLabReport(req: AuthRequest, res: Response): Promise<void> {
     try {
         const id = req.params.id as string;

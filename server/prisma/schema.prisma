@@ -35,6 +35,7 @@ enum LabOrderStatus {
   pending_sample_collection
   sample_collection_scheduled
   sample_collected
+  received_at_lab
   sent_to_lab
   report_ready
   doctor_review_pending
@@ -68,6 +69,9 @@ model User {
 
   auditLogs AuditLog[]
   savedAddresses SavedAddress[]
+  
+  ratingsGiven    Rating[] @relation("RatingsGiven")
+  ratingsReceived Rating[] @relation("RatingsReceived")
 }
 
 model ServiceRequest {
@@ -88,7 +92,8 @@ model ServiceRequest {
   savedAddress  SavedAddress? @relation(fields: [addressId], references: [id])
   
   // Timing
-  scheduledTime DateTime
+  scheduledTime    DateTime
+  scheduledEndTime DateTime?
   
   // Assignment
   nurseId       String?
@@ -104,6 +109,7 @@ model ServiceRequest {
   clinicalReport ClinicalReport?
   doctorAction   DoctorAction?
   labOrders      LabOrder[]
+  ratings        Rating[]
 }
 
 model ClinicalReport {
@@ -195,4 +201,25 @@ model AuditLog {
   timestamp  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Rating {
+  id               String   @id @default(uuid())
+  serviceId        String
+  service          ServiceRequest @relation(fields: [serviceId], references: [id])
+  
+  fromUserId       String
+  fromUser         User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
+  
+  toUserId         String
+  toUser           User     @relation("RatingsReceived", fields: [toUserId], references: [id])
+  
+  score            Int      // 1-5 stars
+  category         String?  // behavior, guidance, medical_skill etc.
+  comment          String?
+  
+  createdAt        DateTime @default(now())
+
+  @@index([serviceId])
+  @@index([toUserId])
 }

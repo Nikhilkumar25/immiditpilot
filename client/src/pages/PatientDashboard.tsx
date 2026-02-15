@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 import CaseTracker from '../components/CaseTracker';
-import { Calendar, Plus, Clock, MapPin, ChevronRight, FileText, Inbox } from 'lucide-react';
+import { Calendar, Plus, Clock, MapPin, ChevronRight, FileText, Inbox, XCircle, FlaskConical, Star } from 'lucide-react';
 import { format } from 'date-fns';
+import RatingDialog from '../components/RatingDialog';
+import { ratingApi } from '../services/api';
 
 const STATUS_LABELS: Record<string, string> = {
     pending_nurse_assignment: 'Pending Nurse',
@@ -19,10 +21,16 @@ const STATUS_LABELS: Record<string, string> = {
     cancelled: 'Cancelled',
 };
 
+const CANCELLABLE = ['pending_nurse_assignment', 'nurse_assigned'];
+
 export default function PatientDashboard() {
     const [services, setServices] = useState<any[]>([]);
     const [labOrders, setLabOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [cancelling, setCancelling] = useState(false);
+    const [ratingConfig, setRatingConfig] = useState<{ isOpen: boolean; serviceId: string; toUserId: string; title: string, categories: string[] }>({
+        isOpen: false, serviceId: '', toUserId: '', title: '', categories: []
+    });
     const { user } = useAuth();
     const { socket } = useSocket();
     const { addToast } = useToast();
@@ -60,6 +68,20 @@ export default function PatientDashboard() {
         return () => { socket.off('status_update', handler); };
     }, [socket, fetchData, addToast]);
 
+    const handleCancel = async (id: string) => {
+        if (!confirm('Are you sure you want to cancel this visit?')) return;
+        setCancelling(true);
+        try {
+            await serviceApi.cancel(id);
+            addToast('success', 'Visit cancelled');
+            fetchData();
+        } catch (err: any) {
+            addToast('error', err.response?.data?.error || 'Failed to cancel');
+        } finally {
+            setCancelling(false);
+        }
+    };
+
     const activeCase = services.find((s) => !['completed', 'cancelled'].includes(s.status));
     const history = services.filter((s) => ['completed', 'cancelled'].includes(s.status));
     const pendingLabs = labOrders.filter((l) => l.status === 'pending_patient_confirmation');
@@ -88,7 +110,19 @@ export default function PatientDashboard() {
                                     <MapPin size={12} /> {activeCase.location}
                                 </div>
                             </div>
-                            <ChevronRight size={20} color="var(--text-muted)" />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                {CANCELLABLE.includes(activeCase.status) && (
+                                    <button
+                                        className="btn btn-sm"
+                                        style={{ color: 'var(--critical)', borderColor: 'var(--critical)', background: 'transparent' }}
+                                        onClick={(e) => { e.stopPropagation(); handleCancel(activeCase.id); }}
+                                        disabled={cancelling}
+                                    >
+                                        <XCircle size={14} /> {cancelling ? 'Cancelling...' : 'Cancel'}
+                                    </button>
+                                )}
+                                <ChevronRight size={20} color="var(--text-muted)" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -121,6 +155,33 @@ export default function PatientDashboard() {
                 </div>
             )}
 
+            {/* Lab Reports */}
+            {labOrders.filter(l => l.status === 'report_ready').length > 0 && (
+                <div style={{ marginBottom: 'var(--space-xl)' }}>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <FlaskConical size={18} /> Lab Reports
+                    </h2>
+                    {labOrders.filter(l => l.status === 'report_ready').map((lab) => (
+                        <div key={lab.id} className="card" style={{ marginBottom: 'var(--space-sm)', borderLeft: '4px solid var(--primary)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <div style={{ fontWeight: 600 }}>{(lab.testsJson as any[])?.map((t: any) => t.name).join(', ')}</div>
+                                    <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>Ready for your review</div>
+                                </div>
+                                <a
+                                    href={lab.labReport?.reportUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="btn btn-secondary btn-sm"
+                                >
+                                    <FileText size={14} /> View Report
+                                </a>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {/* Book Visit CTA */}
             {!activeCase && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
@@ -144,9 +205,8 @@ export default function PatientDashboard() {
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                         {history.map((s) => (
-                            <div key={s.id} className="card" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                onClick={() => navigate(`/patient/service/${s.id}`)}>
-                                <div>
+                            <div key={s.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ cursor: 'pointer', flex: 1 }} onClick={() => navigate(`/patient/service/${s.id}`)}>
                                     <div style={{ fontWeight: 600 }}>{s.serviceType}</div>
                                     <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Clock size={12} /> {format(new Date(s.createdAt), 'MMM d, yyyy')}
@@ -155,12 +215,67 @@ export default function PatientDashboard() {
                                         </span>
                                     </div>
                                 </div>
-                                <ChevronRight size={20} color="var(--text-muted)" />
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                    {s.status === 'completed' && (
+                                        <>
+                                            {s.nurseId && (
+                                                <button
+                                                    className="btn btn-ghost btn-xs"
+                                                    style={{ gap: 4, height: 28, fontSize: '0.75rem' }}
+                                                    onClick={() => setRatingConfig({
+                                                        isOpen: true,
+                                                        serviceId: s.id,
+                                                        toUserId: s.nurseId,
+                                                        title: `Rate Nurse: ${s.nurse?.name || 'Assigned Nurse'}`,
+                                                        categories: ['Behavior', 'Punctuality', 'Medical Skill', 'Painless Treatment']
+                                                    })}
+                                                >
+                                                    <Star size={12} /> Rate Nurse
+                                                </button>
+                                            )}
+                                            {s.doctorId && (
+                                                <button
+                                                    className="btn btn-ghost btn-xs"
+                                                    style={{ gap: 4, height: 28, fontSize: '0.75rem' }}
+                                                    onClick={() => setRatingConfig({
+                                                        isOpen: true,
+                                                        serviceId: s.id,
+                                                        toUserId: s.doctorId,
+                                                        title: `Rate Doctor: ${s.doctor?.name || 'Reviewing Doctor'}`,
+                                                        categories: ['Guidance', 'Diagnosis', 'Behaviour', 'Responsiveness']
+                                                    })}
+                                                >
+                                                    <Star size={12} /> Rate Doctor
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                    <ChevronRight size={20} color="var(--text-muted)" style={{ cursor: 'pointer' }} onClick={() => navigate(`/patient/service/${s.id}`)} />
+                                </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            <RatingDialog
+                isOpen={ratingConfig.isOpen}
+                onClose={() => setRatingConfig({ ...ratingConfig, isOpen: false })}
+                title={ratingConfig.title}
+                categories={ratingConfig.categories}
+                onSubmit={async (data) => {
+                    try {
+                        await ratingApi.submit({
+                            serviceId: ratingConfig.serviceId,
+                            toUserId: ratingConfig.toUserId,
+                            ...data
+                        });
+                        addToast('success', 'Thank you for your feedback!');
+                    } catch (err) {
+                        addToast('error', 'Failed to submit rating');
+                    }
+                }}
+            />
         </div>
     );
 }

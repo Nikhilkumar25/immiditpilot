@@ -10,6 +10,7 @@ import {
     getNurseLabTasks,
     getDoctorLabReviews,
     getLabQueue,
+    confirmSampleReceipt,
 } from '../controllers/labController';
 
 const router = Router();
@@ -32,6 +33,7 @@ router.patch('/order/:id/collect', authorize('nurse', 'lab'), collectSample);
 // Lab
 router.get('/queue', authorize('lab'), getLabQueue);
 router.post('/order/:id/report', authorize('admin', 'lab'), uploadLabReport);
+router.patch('/order/:id/receive', authorize('lab'), confirmSampleReceipt);
 
 // Admin
 router.post('/order/:id/report/admin', authorize('admin'), uploadLabReport); // Kept for admin specific URL if needed, or just share above.
