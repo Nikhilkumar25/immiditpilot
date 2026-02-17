@@ -26,17 +26,19 @@ export default function RegisterPage() {
     const update = (key: string, value: string) => setForm({ ...form, [key]: value });
 
     const roles = [
-        { value: 'patient', label: '👤 Patient', color: '#1E6FFB' },
+        { value: 'patient', label: '👤 User', color: '#F25022' },
         { value: 'nurse', label: '👩‍⚕️ Nurse', color: '#0FB9B1' },
         { value: 'doctor', label: '👨‍⚕️ Doctor', color: '#8B5CF6' },
-        { value: 'admin', label: '🛡️ Admin', color: '#F59E0B' },
+        { value: 'admin', label: '🛡️ Admin', color: '#FFB900' },
     ];
 
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h1 className="auth-logo">Immidit</h1>
-                <p className="auth-tagline">Create your account</p>
+                <div style={{ textAlign: 'center', marginBottom: 'var(--space-md)' }}>
+                    <img src="/logo.svg" alt="IMMIDIT Logo" style={{ height: '48px', width: 'auto' }} />
+                </div>
+                <p className="auth-tagline">Join Rapid Medical Coordination</p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                     {error && (

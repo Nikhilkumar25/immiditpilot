@@ -15,18 +15,23 @@ const NAV_ITEMS: Record<string, { label: string; path: string; icon: React.React
     patient: [
         { label: 'Dashboard', path: '/patient', icon: <LayoutDashboard size={18} /> },
         { label: 'Book Visit', path: '/patient/book', icon: <Calendar size={18} /> },
+        { label: 'Profile', path: '/profile', icon: <User size={18} /> },
     ],
     nurse: [
         { label: 'Dashboard', path: '/nurse', icon: <LayoutDashboard size={18} /> },
+        { label: 'Profile', path: '/profile', icon: <User size={18} /> },
     ],
     doctor: [
         { label: 'Dashboard', path: '/doctor', icon: <LayoutDashboard size={18} /> },
+        { label: 'Profile', path: '/profile', icon: <User size={18} /> },
     ],
     admin: [
         { label: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={18} /> },
+        { label: 'Profile', path: '/profile', icon: <User size={18} /> },
     ],
     lab: [
         { label: 'Dashboard', path: '/lab', icon: <LayoutDashboard size={18} /> },
+        { label: 'Profile', path: '/profile', icon: <User size={18} /> },
     ],
 };
 
@@ -39,10 +44,10 @@ const ROLE_ICONS: Record<string, React.ReactNode> = {
 };
 
 const ROLE_COLORS: Record<string, string> = {
-    patient: '#1E6FFB',
+    patient: '#F25022',
     nurse: '#0FB9B1',
     doctor: '#8B5CF6',
-    admin: '#F59E0B',
+    admin: '#FFB900',
     lab: '#14B8A6',
 };
 
@@ -98,8 +103,8 @@ export default function DashboardLayout({ children }: Props) {
             {/* Sidebar */}
             <aside className="sidebar">
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <div className="auth-logo" style={{ fontSize: '1.5rem', textAlign: 'left' }}>
-                        Immidit
+                    <div style={{ marginBottom: 'var(--space-sm)' }}>
+                        <img src="/logo-light.svg" alt="IMMIDIT Logo" style={{ height: '32px', width: 'auto' }} />
                     </div>
                     <div style={{ fontSize: '0.688rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '1px', textTransform: 'uppercase' }}>
                         Medical Coordination
@@ -120,12 +125,14 @@ export default function DashboardLayout({ children }: Props) {
                     </div>
                     <div>
                         <div style={{ fontSize: '0.875rem', fontWeight: 600 }}>{user.name}</div>
-                        <div style={{
-                            fontSize: '0.688rem', textTransform: 'uppercase', letterSpacing: '0.5px',
-                            color: ROLE_COLORS[user.role], fontWeight: 600
-                        }}>
-                            {user.role}
-                        </div>
+                        {user.role !== 'patient' && (
+                            <div style={{
+                                fontSize: '0.688rem', textTransform: 'uppercase', letterSpacing: '0.5px',
+                                color: ROLE_COLORS[user.role], fontWeight: 600
+                            }}>
+                                {user.role}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -169,26 +176,38 @@ export default function DashboardLayout({ children }: Props) {
                     })}
                 </nav>
 
-                {/* Logout */}
-                <button
-                    onClick={() => { logout(); navigate('/login'); }}
-                    style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
-                        padding: '10px 12px', borderRadius: 'var(--radius-md)',
-                        background: 'transparent', color: 'rgba(255,255,255,0.4)',
-                        border: 'none', cursor: 'pointer', fontSize: '0.875rem',
-                        transition: 'var(--transition)', width: '100%'
-                    }}
-                >
-                    <LogOut size={18} />
-                    Logout
-                </button>
             </aside>
 
             {/* Main content */}
             <main className="main-content">
                 {children}
             </main>
+
+            {/* Mobile Bottom Navigation */}
+            <nav className="bottom-nav mobile-only">
+                {navItems.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    const badge = badges[item.path];
+                    return (
+                        <button
+                            key={item.path}
+                            onClick={() => {
+                                setBadges(prev => ({ ...prev, [item.path]: 0 }));
+                                navigate(item.path);
+                            }}
+                            className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+                        >
+                            {React.cloneElement(item.icon as React.ReactElement, { size: 20 })}
+                            <span>{item.label}</span>
+                            {badge > 0 && (
+                                <span className="badge">
+                                    {badge > 9 ? '9+' : badge}
+                                </span>
+                            )}
+                        </button>
+                    );
+                })}
+            </nav>
         </div>
     );
 }

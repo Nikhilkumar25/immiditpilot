@@ -60,7 +60,7 @@ export async function deleteAddress(req: AuthRequest, res: Response): Promise<vo
         const userId = req.user!.id;
 
         await prisma.savedAddress.deleteMany({
-            where: { id, userId } // Ensure user owns the address
+            where: { id: id as string, userId } // Ensure user owns the address
         });
 
         res.json({ message: 'Address deleted' });

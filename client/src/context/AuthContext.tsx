@@ -7,6 +7,11 @@ interface User {
     name: string;
     phone: string;
     role: 'patient' | 'nurse' | 'doctor' | 'admin' | 'lab';
+    gender?: string;
+    age?: number;
+    bloodGroup?: string;
+    allergicInfo?: string;
+    medicalHistory?: string;
     createdAt: string;
 }
 

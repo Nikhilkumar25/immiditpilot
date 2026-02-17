@@ -13,6 +13,7 @@ export enum ServiceStatus {
   NURSE_ON_THE_WAY = 'nurse_on_the_way',
   VITALS_RECORDED = 'vitals_recorded',
   AWAITING_DOCTOR_REVIEW = 'awaiting_doctor_review',
+  AWAITING_DOCTOR_APPROVAL = 'awaiting_doctor_approval',
   DOCTOR_COMPLETED = 'doctor_completed',
   COMPLETED = 'completed',
   CANCELLED = 'cancelled',
@@ -76,13 +77,22 @@ export interface Vitals {
   spO2: string;
   weight: string;
   bloodSugar: string;
+  respiratoryRate?: string;
+  randomBloodSugar?: string;
+  [key: string]: any; // Allow service-specific vitals
 }
 
 export interface ClinicalReport {
   id: string;
   serviceId: string;
+  chiefComplaint: string | null;
+  durationOfSymptoms: string | null;
   vitalsJson: Vitals;
+  medicalHistory: string | null;
+  allergies: string | null;
+  currentMedications: string | null;
   nurseNotes: string;
+  nurseObservations: string | null;
   attachments: string[];
   triageLevel: TriageLevel;
   createdAt: string;
@@ -90,14 +100,74 @@ export interface ClinicalReport {
 
 // ============ DOCTOR ACTION ============
 
+export interface Medicine {
+  name: string;
+  dosage: string;
+  frequency: string;  // e.g. "1-0-1"
+  durationDays: number;
+  timing: 'Before Food' | 'After Food' | 'None';
+  instructions: string;
+}
+
 export interface DoctorAction {
   id: string;
   serviceId: string;
   diagnosis: string;
+  clinicalNotes: string | null;
+  advice: string | null;
+  medications: string | null;
+  medicinesJson: Medicine[] | null;
   prescriptionUrl: string | null;
   labRecommended: boolean;
   referralNote: string | null;
   followupDate: string | null;
+  followupInstruction: string | null;
+  procedureApproved: boolean;
+  approvalNotes: string | null;
+  requestNurseEdit: boolean;
+  createdAt: string;
+}
+
+// ============ PRESCRIPTION ============
+
+export interface Prescription {
+  id: string;
+  serviceId: string;
+  doctorId: string;
+  patientId: string;
+  clinicalReportId: string;
+  diagnosis: string;
+  summaryNotes: string | null;
+  vitalsSnapshotJson: Vitals;
+  nurseObservations: string | null;
+  medicinesJson: Medicine[];
+  followUpInstruction: string | null;
+  pdfUrl: string | null;
+  versionNumber: number;
+  createdAt: string;
+}
+
+export interface PrescriptionVersion {
+  id: string;
+  prescriptionId: string;
+  versionNumber: number;
+  vitalsSnapshotJson: Vitals;
+  nurseObservations: string | null;
+  medicinesJson: Medicine[];
+  diagnosis: string;
+  summaryNotes: string | null;
+  createdAt: string;
+}
+
+export interface FollowUpTask {
+  id: string;
+  serviceId: string;
+  patientId: string;
+  prescriptionId: string | null;
+  instruction: string;
+  dueDate: string | null;
+  status: string;
+  completedAt: string | null;
   createdAt: string;
 }
 
@@ -174,14 +244,32 @@ export interface SubmitVitalsRequest {
   vitalsJson: Vitals;
   nurseNotes: string;
   triageLevel: TriageLevel;
+  chiefComplaint?: string;
+  durationOfSymptoms?: string;
+  medicalHistory?: string;
+  allergies?: string;
+  currentMedications?: string;
+  nurseObservations?: string;
 }
 
 export interface SubmitDoctorActionRequest {
   diagnosis: string;
+  clinicalNotes?: string;
+  advice?: string;
+  medications?: string;
+  medicinesJson?: Medicine[];
   prescriptionUrl?: string;
   labRecommended: boolean;
   referralNote?: string;
   followupDate?: string;
+  followupInstruction?: string;
+}
+
+export interface GeneratePrescriptionRequest {
+  diagnosis: string;
+  summaryNotes?: string;
+  medicinesJson: Medicine[];
+  followUpInstruction?: string;
 }
 
 export interface CreateLabOrderRequest {

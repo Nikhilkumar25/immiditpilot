@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { prisma } from '../index';
 
 export interface AuthRequest extends Request {
     user?: {
@@ -10,7 +11,7 @@ export interface AuthRequest extends Request {
     };
 }
 
-export const authenticate = (req: AuthRequest, res: Response, next: NextFunction): void => {
+export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         res.status(401).json({ error: 'No token provided' });
@@ -25,6 +26,14 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
             role: string;
             name: string;
         };
+
+        // Verify user still exists (prevents foreign key errors with stale tokens)
+        const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+        if (!user) {
+            res.status(401).json({ error: 'User no longer exists' });
+            return;
+        }
+
         req.user = decoded;
         next();
     } catch {

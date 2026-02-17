@@ -11,13 +11,25 @@ async function main() {
 
     const patient = await prisma.user.upsert({
         where: { email: 'patient@immidit.com' },
-        update: {},
+        update: {
+            gender: 'Male',
+            age: 28,
+            bloodGroup: 'O+',
+            allergicInfo: 'Peanuts, Penicillin',
+            medicalHistory: 'Asthma (controlled)',
+        },
         create: {
+            id: '7f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'patient@immidit.com',
             passwordHash: password,
             name: 'Rahul Sharma',
             phone: '+91 9876543210',
             role: 'patient',
+            gender: 'Male',
+            age: 28,
+            bloodGroup: 'O+',
+            allergicInfo: 'Peanuts, Penicillin',
+            medicalHistory: 'Asthma (controlled)',
         },
     });
 
@@ -25,6 +37,7 @@ async function main() {
         where: { email: 'nurse@immidit.com' },
         update: {},
         create: {
+            id: '8f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'nurse@immidit.com',
             passwordHash: password,
             name: 'Priya Singh',
@@ -37,6 +50,7 @@ async function main() {
         where: { email: 'doctor@immidit.com' },
         update: {},
         create: {
+            id: '9f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'doctor@immidit.com',
             passwordHash: password,
             name: 'Dr. Amit Patel',
@@ -49,6 +63,7 @@ async function main() {
         where: { email: 'admin@immidit.com' },
         update: {},
         create: {
+            id: 'af9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'admin@immidit.com',
             passwordHash: password,
             name: 'Admin User',
@@ -61,6 +76,7 @@ async function main() {
         where: { email: 'lab@immidit.com' },
         update: {},
         create: {
+            id: 'bf9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'lab@immidit.com',
             passwordHash: password,
             name: 'Lab Technician',

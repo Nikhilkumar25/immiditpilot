@@ -33,7 +33,7 @@ interface LabOrder {
 
 const STATUS_BADGES: Record<string, { label: string; cls: string }> = {
     pending_sample_collection: { label: 'Awaiting Sample', cls: 'badge-warning' },
-    pending_patient_confirmation: { label: 'Patient Confirmation', cls: 'badge-info' },
+    pending_patient_confirmation: { label: 'Awaiting Confirmation', cls: 'badge-info' },
     sample_collected: { label: 'Sample Collected', cls: 'badge-primary' },
     received_at_lab: { label: 'Received at Lab', cls: 'badge-success' },
     report_ready: { label: 'Report Ready', cls: 'badge-mild' },

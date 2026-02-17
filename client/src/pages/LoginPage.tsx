@@ -29,8 +29,10 @@ export default function LoginPage() {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <h1 className="auth-logo">Immidit</h1>
-                <p className="auth-tagline">Real-Time Medical Coordination</p>
+                <div style={{ textAlign: 'center', marginBottom: 'var(--space-md)' }}>
+                    <img src="/logo.svg" alt="IMMIDIT Logo" style={{ height: '48px', width: 'auto' }} />
+                </div>
+                <p className="auth-tagline">Rapid Medical Coordination & Care</p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
                     {error && (

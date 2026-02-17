@@ -69,6 +69,8 @@ export const clinicalApi = {
 export const doctorApi = {
     submitAction: (serviceId: string, data: any) => api.post(`/doctor/${serviceId}/action`, data),
     getAction: (serviceId: string) => api.get(`/doctor/${serviceId}/action`),
+    approveProcedure: (serviceId: string, data: any) => api.post(`/doctor/${serviceId}/approve`, data),
+    requestEdit: (serviceId: string, notes?: string) => api.post(`/doctor/${serviceId}/request-edit`, { notes }),
 };
 
 // ============ LAB ============
@@ -107,6 +109,13 @@ export const ratingApi = {
     submit: (data: { serviceId: string; toUserId: string; score: number; category: string; comment?: string }) =>
         api.post('/ratings', data),
     getForUser: (userId: string) => api.get(`/ratings/user/${userId}`),
+};
+
+// ============ PRESCRIPTION ============
+export const prescriptionApi = {
+    generate: (serviceId: string, data: any) => api.post(`/services/${serviceId}/prescription/generate`, data),
+    get: (serviceId: string) => api.get(`/services/${serviceId}/prescription`),
+    getFollowUps: (patientId: string) => api.get(`/patients/${patientId}/follow-ups`),
 };
 
 export default api;
