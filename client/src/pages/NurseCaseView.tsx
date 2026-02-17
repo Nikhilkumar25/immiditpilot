@@ -19,17 +19,21 @@ function DynamicField({
     field,
     value,
     onChange,
+    id,
 }: {
     field: NurseFormField;
     value: any;
     onChange: (val: any) => void;
+    id?: string;
 }) {
+    const inputId = id || `field-${field.field}`;
+
     switch (field.type) {
         case 'text':
             return (
                 <div className="form-group">
-                    <label className="form-label">{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
-                    <input type="text" className="form-input" placeholder={field.label}
+                    <label className="form-label" htmlFor={inputId}>{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
+                    <input type="text" className="form-input" id={inputId} name={field.field} placeholder={field.label}
                         value={value || ''} onChange={(e) => onChange(e.target.value)} />
                     {field.description && <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{field.description}</small>}
                 </div>
@@ -38,17 +42,23 @@ function DynamicField({
         case 'number':
             return (
                 <div className="form-group">
-                    <label className="form-label">{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
-                    <input type="number" className="form-input" placeholder={field.label}
+                    <label className="form-label" htmlFor={inputId}>{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
+                    <input type="number" className="form-input" id={inputId} name={field.field} placeholder={field.label}
+                        min={field.min} max={field.max}
                         value={value || ''} onChange={(e) => onChange(e.target.value)} />
+                    {(field.min !== undefined || field.max !== undefined) && (
+                        <small style={{ color: 'var(--text-secondary)', fontSize: '0.688rem', display: 'block', marginTop: 4 }}>
+                            Sense Check: {field.min ?? 'Any'} – {field.max ?? 'Any'}
+                        </small>
+                    )}
                 </div>
             );
 
         case 'textarea':
             return (
                 <div className="form-group">
-                    <label className="form-label">{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
-                    <textarea className="form-textarea" placeholder={field.label}
+                    <label className="form-label" htmlFor={inputId}>{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
+                    <textarea className="form-textarea" id={inputId} name={field.field} placeholder={field.label}
                         value={value || ''} onChange={(e) => onChange(e.target.value)} />
                     {field.description && <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{field.description}</small>}
                 </div>
@@ -57,8 +67,8 @@ function DynamicField({
         case 'select':
             return (
                 <div className="form-group">
-                    <label className="form-label">{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
-                    <div style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
+                    <label className="form-label" htmlFor={inputId}>{field.label} {field.required && <span style={{ color: 'var(--critical)' }}>*</span>}</label>
+                    <div id={inputId} style={{ display: 'flex', gap: 'var(--space-xs)', flexWrap: 'wrap' }}>
                         {field.options?.map((opt) => (
                             <button key={opt} type="button"
                                 onClick={() => onChange(opt)}
@@ -203,6 +213,13 @@ export default function NurseCaseView() {
             ]);
             setService(servRes.data);
             setLabTasks(labRes.data.filter((t: any) => t.serviceId === id));
+
+            // Populate form values from report if it exists
+            if (servRes.data.clinicalReport) {
+                setFormValues(servRes.data.clinicalReport.vitalsJson || {});
+                setNurseNotes(servRes.data.clinicalReport.nurseNotes || '');
+                setTriageLevel(servRes.data.clinicalReport.triageLevel || '');
+            }
         } catch (err) { console.error(err); }
         setLoading(false);
     }, [id]);
@@ -230,18 +247,41 @@ export default function NurseCaseView() {
 
         // Client-side check for required fields
         const missingFields: string[] = [];
+        const currentStage = isProcedureStage ? 'procedure' : 'assessment';
+
         if (flowUI) {
+            const isRequestingDoctor = formValues.prescriptionStatus === 'Missing (Request from Doctor)';
+
             for (const field of flowUI.nurseFields) {
+                // Only validate fields for the current stage
+                const fieldStage = (field as any).stage || 'assessment';
+                if (fieldStage !== currentStage) continue;
+
+                const val = formValues[field.field];
+
                 if (field.required) {
-                    const val = formValues[field.field];
+                    // Special Case: Prescription photo not required if requesting from doctor
+                    if (field.field === 'prescriptionPhoto' && isRequestingDoctor) continue;
+
                     if (val === undefined || val === null || val === '' || val === false) {
                         missingFields.push(field.label);
+                    }
+                }
+
+                // Sense checks for numeric fields
+                if (field.type === 'number' && val !== undefined && val !== null && val !== '') {
+                    const numVal = Number(val);
+                    if (field.min !== undefined && numVal < field.min) {
+                        missingFields.push(`${field.label} is too low (Min: ${field.min})`);
+                    }
+                    if (field.max !== undefined && numVal > field.max) {
+                        missingFields.push(`${field.label} is too high (Max: ${field.max})`);
                     }
                 }
             }
         }
         if (missingFields.length > 0) {
-            addToast('error', `Missing required fields: ${missingFields.join(', ')}`);
+            addToast('error', `Missing required fields for ${currentStage}: ${missingFields.join(', ')}`);
             return;
         }
 
@@ -299,6 +339,14 @@ export default function NurseCaseView() {
     if (!service) return <div className="empty-state"><p>Case not found.</p></div>;
 
     const hasReport = !!service.clinicalReport;
+    const isRestricted = flowUI?.requiresProcedureApproval;
+    const isApproved = service.doctorAction?.procedureApproved;
+    const editRequested = service.doctorAction?.requestNurseEdit;
+
+    // Logic for what to show
+    const showAssessmentForm = !hasReport || editRequested;
+    const isProcedureStage = hasReport && isRestricted && isApproved && !editRequested;
+    const isAwaitingApproval = hasReport && isRestricted && !isApproved && !editRequested;
 
     return (
         <div>
@@ -311,25 +359,24 @@ export default function NurseCaseView() {
                 <div style={{
                     background: 'linear-gradient(135deg, #dc3545, #c82333)',
                     color: 'white',
-                    padding: 'var(--space-md) var(--space-lg)',
+                    padding: '12px var(--space-md)',
                     borderRadius: 'var(--radius-lg)',
                     marginBottom: 'var(--space-lg)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 'var(--space-sm)',
+                    gap: 12,
                     fontWeight: 700,
-                    fontSize: '0.925rem',
-                    animation: 'pulse 2s infinite',
+                    fontSize: '0.875rem',
                     boxShadow: '0 4px 16px rgba(220, 53, 69, 0.4)',
                 }}>
-                    <AlertTriangle size={22} /> 🚨 EMERGENCY ASSESSMENT — Prioritize this case immediately
+                    <AlertTriangle size={20} style={{ flexShrink: 0 }} /> 🚨 EMERGENCY — Prioritize this case
                 </div>
             )}
 
             {/* Patient info */}
-            <div className="card" style={{ marginBottom: 'var(--space-lg)', borderLeft: flowUI ? `4px solid ${flowUI.color}` : undefined }}>
+            <div className="card" style={{ marginBottom: 'var(--space-lg)', borderLeft: flowUI ? `4px solid ${flowUI.color}` : undefined, padding: 'var(--space-md)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                    <div style={{
+                    <div className="desktop-only" style={{
                         width: 48, height: 48, borderRadius: '50%', background: 'var(--primary-bg)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '1.5rem',
@@ -337,13 +384,13 @@ export default function NurseCaseView() {
                         {flowUI?.icon || <User size={22} />}
                     </div>
                     <div style={{ flex: 1 }}>
-                        <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{service.patient?.name}</h2>
-                        <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>
+                        <h2 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{service.patient?.name}</h2>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             {service.serviceType} · 📞 {service.patient?.phone}
                         </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                        <span className="badge badge-primary" style={flowUI?.isEmergency ? { background: '#dc3545', color: 'white' } : {}}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                        <span className="badge badge-primary" style={{ ...(flowUI?.isEmergency ? { background: '#dc3545', color: 'white' } : {}), fontSize: '0.625rem' }}>
                             {service.status.replace(/_/g, ' ')}
                         </span>
                         {service.isImmediate && (
@@ -351,7 +398,7 @@ export default function NurseCaseView() {
                         )}
                     </div>
                 </div>
-                <div style={{ marginTop: 'var(--space-md)', padding: 'var(--space-md)', background: 'var(--bg)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem' }}>
+                <div style={{ marginTop: 'var(--space-md)', padding: 'var(--space-sm) var(--space-md)', background: 'var(--bg)', borderRadius: 'var(--radius-md)', fontSize: '0.813rem' }}>
                     <strong>Symptoms:</strong> {service.symptoms}
                 </div>
             </div>
@@ -393,12 +440,19 @@ export default function NurseCaseView() {
                 </div>
             )}
 
-            {/* ============ DYNAMIC VITALS + SERVICE-SPECIFIC FORM ============ */}
-            {(service.status === 'nurse_on_the_way' || service.status === 'vitals_recorded') && !hasReport && (
+            {/* ============ STAGE 1: ASSESSMENT FORM ============ */}
+            {((service.status === 'nurse_on_the_way' || service.status === 'vitals_recorded') || editRequested) && showAssessmentForm && (
                 <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}>
-                        {flowUI?.icon} Record Vitals — {service.serviceType}
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        {editRequested ? <AlertTriangle size={18} color="var(--warning)" /> : flowUI?.icon}
+                        {editRequested ? 'Edit Clinical Assessment' : `Record Vitals — ${service.serviceType}`}
                     </h3>
+
+                    {editRequested && service.doctorAction?.approvalNotes && (
+                        <div style={{ padding: 'var(--space-md)', background: 'hsl(45, 100%, 96%)', border: '1px solid var(--warning)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', fontSize: '0.875rem' }}>
+                            <strong>Doctor's Request:</strong> {service.doctorAction.approvalNotes}
+                        </div>
+                    )}
 
                     {/* Auto-close notice for injection */}
                     {flowUI?.autoCloseInfo && (
@@ -422,17 +476,37 @@ export default function NurseCaseView() {
                                 Vital Signs
                             </div>
                             <div className="vitals-grid" style={{ marginBottom: 'var(--space-lg)' }}>
-                                {vitalFields.map((field) => (
-                                    <DynamicField key={field.field} field={field}
-                                        value={formValues[field.field]}
-                                        onChange={(val) => updateField(field.field, val)} />
-                                ))}
+                                {(() => {
+                                    const rendered: React.ReactNode[] = [];
+                                    for (let i = 0; i < vitalFields.length; i++) {
+                                        const field = vitalFields[i];
+
+                                        // Special grouping for BP fields
+                                        if (field.field === 'bpSystolic' && vitalFields[i + 1]?.field === 'bpDiastolic') {
+                                            rendered.push(
+                                                <div key="bp-group" style={{ gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)', paddingBottom: 'var(--space-md)', borderBottom: '1px dashed var(--border)', marginBottom: 'var(--space-md)' }}>
+                                                    <DynamicField id="input-bp-systolic" field={field} value={formValues[field.field]} onChange={(val) => updateField(field.field, val)} />
+                                                    <DynamicField id="input-bp-diastolic" field={vitalFields[i + 1]} value={formValues[vitalFields[i + 1].field]} onChange={(val) => updateField(vitalFields[i + 1].field, val)} />
+                                                </div>
+                                            );
+                                            i++; // skip next
+                                        } else {
+                                            rendered.push(
+                                                <DynamicField key={field.field} id={`input-${field.field}`} field={field}
+                                                    value={formValues[field.field]}
+                                                    onChange={(val) => updateField(field.field, val)} />
+                                            );
+                                        }
+                                    }
+                                    return rendered;
+                                })()}
                             </div>
                         </>
                     )}
 
-                    {/* Service-Specific Section */}
-                    {serviceFields.length > 0 && (
+                    {/* Service-Specific Section (ONLY if not restricted, or if it's Assessment part) */}
+                    {/* For restricted services, we show only ASSESSMENT fields now */}
+                    {serviceFields.length > 0 && !isRestricted && (
                         <>
                             <div style={{
                                 fontSize: '0.813rem', fontWeight: 600, color: flowUI?.color || 'var(--text-secondary)',
@@ -451,25 +525,21 @@ export default function NurseCaseView() {
                         </>
                     )}
 
-                    {/* Nurse Notes (always present) */}
-                    <div className="form-group" style={{ marginBottom: 'var(--space-lg)' }}>
-                        <label className="form-label">Nurse Notes</label>
-                        <textarea className="form-textarea" placeholder="Observations, patient condition..."
-                            value={nurseNotes} onChange={(e) => setNurseNotes(e.target.value)} />
-                    </div>
-
-                    {/* Triage Level (always present) */}
-                    <div className="form-group" style={{ marginBottom: 'var(--space-lg)' }}>
-                        <label className="form-label">Triage Level <span style={{ color: 'var(--critical)' }}>*</span></label>
-                        <div style={{ display: 'flex', gap: 'var(--space-sm)' }}>
+                    {/* Vitals & Triage Section */}
+                    <div style={{ background: 'var(--bg)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', textTransform: 'uppercase' }}>
+                            🏥 Triage & Priority *
+                        </div>
+                        <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                             {TRIAGE_OPTIONS.map((opt) => (
                                 <button key={opt.value} type="button"
                                     onClick={() => setTriageLevel(opt.value)}
                                     style={{
-                                        flex: 1, padding: '12px', borderRadius: 'var(--radius-md)', fontSize: '0.875rem',
-                                        fontWeight: triageLevel === opt.value ? 700 : 400, cursor: 'pointer',
-                                        background: triageLevel === opt.value ? `${opt.color}15` : 'var(--bg)',
+                                        flex: 1, minWidth: 100, padding: 'var(--space-md)', borderRadius: 'var(--radius-md)',
                                         border: `2px solid ${triageLevel === opt.value ? opt.color : 'var(--border)'}`,
+                                        background: triageLevel === opt.value ? `${opt.color}10` : 'var(--bg)',
+                                        color: triageLevel === opt.value ? opt.color : 'var(--text)',
+                                        fontWeight: triageLevel === opt.value ? 700 : 500,
                                         transition: 'var(--transition)',
                                     }}>
                                     {opt.label}
@@ -477,6 +547,46 @@ export default function NurseCaseView() {
                             ))}
                         </div>
                     </div>
+
+                    <div className="form-group" style={{ marginBottom: 'var(--space-lg)' }}>
+                        <label className="form-label">Nurse Assessment Notes</label>
+                        <textarea className="form-textarea" placeholder="Describe physical findings, mental state, or any critical observations..."
+                            value={nurseNotes} onChange={(e) => setNurseNotes(e.target.value)} />
+                    </div>
+
+
+                    {/* Prescription Upload for Restricted Services */}
+                    {isRestricted && (
+                        <div style={{ marginBottom: 'var(--space-lg)' }}>
+                            <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)', textTransform: 'uppercase' }}>
+                                Prescription (Required for restricted procedures)
+                            </div>
+
+                            {formValues.prescriptionStatus === 'Missing (Request from Doctor)' ? (
+                                <div style={{
+                                    padding: 'var(--space-md)',
+                                    background: 'var(--primary-bg)',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: '1px solid var(--primary)',
+                                    marginBottom: 'var(--space-md)',
+                                    color: 'var(--primary)',
+                                    fontSize: '0.875rem',
+                                    fontWeight: 600
+                                }}>
+                                    ✨ Doctor will review symptoms and issue a new prescription.
+                                    <div style={{ fontSize: '0.75rem', marginTop: 4, fontWeight: 400 }}>
+                                        Note: A ₹199 consultation fee will be added to the package.
+                                    </div>
+                                </div>
+                            ) : (
+                                <DynamicField
+                                    field={{ field: 'prescriptionPhoto', label: 'Upload Prescription', type: 'image', required: true, description: 'Photo of the doctor\'s prescription for this procedure' }}
+                                    value={formValues.prescriptionPhoto}
+                                    onChange={(val) => updateField('prescriptionPhoto', val)}
+                                />
+                            )}
+                        </div>
+                    )}
 
                     {/* Submit Button */}
                     <button
@@ -491,7 +601,68 @@ export default function NurseCaseView() {
                         {submitting ? <div className="spinner" /> : (
                             <>
                                 <Send size={18} />
-                                {flowUI?.urgentSubmit ? '🚨 URGENT Submit to Doctor' : 'Submit to Doctor'}
+                                {editRequested ? 'Submit Updated Assessment' : (flowUI?.urgentSubmit ? '🚨 URGENT Submit to Doctor' : 'Submit for Doctor Approval')}
+                            </>
+                        )}
+                    </button>
+                </div>
+            )}
+
+            {/* ============ WAIT STATE: AWAITING APPROVAL ============ */}
+            {isAwaitingApproval && (
+                <div className="card" style={{ marginBottom: 'var(--space-lg)', textAlign: 'center', padding: 'var(--space-xl) var(--space-md)', background: 'hsl(210, 80%, 98%)', border: '2px dashed var(--primary)' }}>
+                    <div style={{ width: 64, height: 64, background: 'var(--primary-bg)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto var(--space-md)' }}>
+                        <Clock size={32} className="spinner" style={{ color: 'var(--primary)', animationDuration: '3s' }} />
+                    </div>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)', marginBottom: 'var(--space-sm)' }}>Awaiting Doctor Approval</h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', maxWidth: 400, margin: '0 auto' }}>
+                        The clinical assessment and prescription have been sent to the doctor.
+                        <strong> Please wait for approval before performing the {service.serviceType}.</strong>
+                    </p>
+                    <button className="btn btn-secondary btn-sm" onClick={fetchData} style={{ marginTop: 'var(--space-lg)' }}>
+                        Check Status
+                    </button>
+                </div>
+            )}
+
+            {/* ============ STAGE 2: PROCEDURE RECORDING ============ */}
+            {isProcedureStage && (
+                <div className="card" style={{ marginBottom: 'var(--space-lg)', borderLeft: '4px solid var(--success)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', marginBottom: 'var(--space-md)', padding: 'var(--space-md)', background: 'hsl(145, 63%, 97%)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ width: 24, height: 24, background: 'var(--success)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Check size={14} color="white" />
+                        </div>
+                        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)' }}>
+                            PROCEDURE APPROVED BY DOCTOR
+                        </div>
+                    </div>
+
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}>
+                        Record {service.serviceType} Procedure
+                    </h3>
+
+                    {service.doctorAction?.approvalNotes && (
+                        <div style={{ padding: 'var(--space-md)', background: 'var(--bg)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', fontSize: '0.813rem', color: 'var(--text-secondary)' }}>
+                            <strong>Doctor's Notes:</strong> {service.doctorAction.approvalNotes}
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
+                        {serviceFields.map((field) => (
+                            <DynamicField key={field.field} field={field}
+                                value={formValues[field.field]}
+                                onChange={(val) => updateField(field.field, val)} />
+                        ))}
+                    </div>
+
+                    <button
+                        className="btn btn-success btn-lg btn-block"
+                        onClick={handleSubmitVitals} // Resubmit with procedure data
+                        disabled={submitting}
+                    >
+                        {submitting ? <div className="spinner" /> : (
+                            <>
+                                <Check size={18} /> Complete Procedure & Close Case
                             </>
                         )}
                     </button>

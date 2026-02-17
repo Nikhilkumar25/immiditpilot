@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 
 interface Props {
     children: ReactNode;
-    role: string;
+    role?: string;
 }
 
 export default function ProtectedRoute({ children, role }: Props) {
@@ -12,7 +12,7 @@ export default function ProtectedRoute({ children, role }: Props) {
 
     if (loading) return <div className="loading-page"><div className="spinner" /></div>;
     if (!user) return <Navigate to="/login" />;
-    if (user.role !== role) return <Navigate to={`/${user.role}`} />;
+    if (role && user.role !== role) return <Navigate to={`/${user.role}`} />;
 
     return <>{children}</>;
 }

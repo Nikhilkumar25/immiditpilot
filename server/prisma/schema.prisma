@@ -25,6 +25,7 @@ enum ServiceStatus {
   nurse_on_the_way
   vitals_recorded
   awaiting_doctor_review
+  awaiting_doctor_approval
   doctor_completed
   completed
   cancelled
@@ -57,6 +58,11 @@ model User {
   name         String
   phone        String
   role         Role
+  gender       String?
+  age          Int?
+  bloodGroup   String?
+  allergicInfo String?
+  medicalHistory String?
   createdAt    DateTime @default(now())
 
   // Relations
@@ -72,6 +78,10 @@ model User {
   
   ratingsGiven    Rating[] @relation("RatingsGiven")
   ratingsReceived Rating[] @relation("RatingsReceived")
+
+  prescriptionsAsDoctor  Prescription[] @relation("DoctorPrescriptions")
+  prescriptionsAsPatient Prescription[] @relation("PatientPrescriptions")
+  followUpTasks          FollowUpTask[] @relation("PatientFollowUps")
 }
 
 model ServiceRequest {
@@ -110,31 +120,112 @@ model ServiceRequest {
   doctorAction   DoctorAction?
   labOrders      LabOrder[]
   ratings        Rating[]
+  prescriptions  Prescription[]
+  followUpTasks  FollowUpTask[]
 }
 
 model ClinicalReport {
-  id          String     @id @default(uuid())
-  serviceId   String     @unique
-  vitalsJson  Json
-  nurseNotes  String
-  attachments String[]
-  triageLevel TriageLevel
-  createdAt   DateTime   @default(now())
+  id                  String     @id @default(uuid())
+  serviceId           String     @unique
+  chiefComplaint      String?
+  durationOfSymptoms  String?
+  vitalsJson          Json
+  medicalHistory      String?
+  allergies           String?
+  currentMedications  String?
+  nurseNotes          String
+  nurseObservations   String?
+  attachments         String[]
+  triageLevel         TriageLevel
+  createdAt           DateTime   @default(now())
+
+  service      ServiceRequest @relation(fields: [serviceId], references: [id])
+  prescription Prescription?
+}
+
+model DoctorAction {
+  id                  String   @id @default(uuid())
+  serviceId           String   @unique
+  diagnosis           String
+  clinicalNotes       String?
+  advice              String?
+  medications         String?
+  medicinesJson       Json?      // Structured medicines array
+  prescriptionUrl     String?
+  labRecommended      Boolean  @default(false)
+  referralNote        String?
+  followupDate        DateTime?
+  followupInstruction String?
+  
+  // Procedure Approval for restricted services
+  procedureApproved   Boolean  @default(false)
+  approvalNotes       String?
+  requestNurseEdit    Boolean  @default(false)
+  
+  emergencyAction      String?   // hospital_referral, immediate_prescription, continue_care
 
   service ServiceRequest @relation(fields: [serviceId], references: [id])
 }
 
-model DoctorAction {
-  id              String   @id @default(uuid())
-  serviceId       String   @unique
-  diagnosis       String
-  prescriptionUrl String?
-  labRecommended  Boolean  @default(false)
-  referralNote    String?
-  followupDate    DateTime?
-  createdAt       DateTime @default(now())
+model Prescription {
+  id                   String   @id @default(uuid())
+  serviceId            String
+  doctorId             String
+  patientId            String
+  clinicalReportId     String   @unique
+  diagnosis            String
+  summaryNotes         String?
+  vitalsSnapshotJson   Json
+  nurseObservations    String?
+  medicinesJson        Json
+  followUpInstruction  String?
+  pdfUrl               String?
+  versionNumber        Int      @default(1)
+  createdAt            DateTime @default(now())
 
-  service ServiceRequest @relation(fields: [serviceId], references: [id])
+  service        ServiceRequest  @relation(fields: [serviceId], references: [id])
+  doctor         User            @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  patient        User            @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  clinicalReport ClinicalReport  @relation(fields: [clinicalReportId], references: [id])
+  versions       PrescriptionVersion[]
+
+  @@index([serviceId])
+  @@index([doctorId])
+  @@index([patientId])
+}
+
+model PrescriptionVersion {
+  id                   String   @id @default(uuid())
+  prescriptionId       String
+  versionNumber        Int
+  vitalsSnapshotJson   Json
+  nurseObservations    String?
+  medicinesJson        Json
+  diagnosis            String
+  summaryNotes         String?
+  createdAt            DateTime @default(now())
+
+  prescription Prescription @relation(fields: [prescriptionId], references: [id])
+
+  @@index([prescriptionId])
+}
+
+model FollowUpTask {
+  id                  String    @id @default(uuid())
+  serviceId           String
+  patientId           String
+  prescriptionId      String?
+  instruction         String
+  dueDate             DateTime?
+  status              String    @default("pending")  // pending, completed, cancelled
+  completedAt         DateTime?
+  createdAt           DateTime  @default(now())
+
+  service      ServiceRequest @relation(fields: [serviceId], references: [id])
+  patient      User           @relation("PatientFollowUps", fields: [patientId], references: [id])
+
+  @@index([serviceId])
+  @@index([patientId])
 }
 
 model LabOrder {

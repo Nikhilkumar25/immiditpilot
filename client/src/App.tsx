@@ -14,6 +14,7 @@ import NurseCaseView from './pages/NurseCaseView';
 import DoctorCaseView from './pages/DoctorCaseView';
 import ServiceDetail from './pages/ServiceDetail';
 import LabDashboard from './pages/LabDashboard';
+import Profile from './pages/Profile';
 
 function App() {
     const { user, loading } = useAuth();
@@ -62,6 +63,9 @@ function App() {
 
             {/* Lab routes */}
             <Route path="/lab" element={<ProtectedRoute role="lab"><DashboardLayout><LabDashboard /></DashboardLayout></ProtectedRoute>} />
+
+            {/* General Protected Routes */}
+            <Route path="/profile" element={<ProtectedRoute><DashboardLayout><Profile /></DashboardLayout></ProtectedRoute>} />
 
             {/* Default redirect */}
             <Route path="*" element={<Navigate to={getDefaultRoute()} />} />

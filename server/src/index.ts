@@ -18,6 +18,7 @@ import adminRoutes from './routes/adminRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import addressRoutes from './routes/addressRoutes';
 import ratingRoutes from './routes/ratingRoutes';
+import prescriptionRoutes from './routes/prescriptionRoutes';
 
 export const prisma = new PrismaClient();
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/addresses', addressRoutes);
 app.use('/api/ratings', ratingRoutes);
+app.use('/api', prescriptionRoutes);
 
 // Start
 const PORT = process.env.PORT || 3001;

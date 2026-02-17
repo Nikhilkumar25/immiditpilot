@@ -38,7 +38,12 @@ export async function register(req: AuthRequest, res: Response): Promise<void> {
 
         res.status(201).json({
             token,
-            user: { id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role, createdAt: user.createdAt },
+            user: {
+                id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role,
+                gender: user.gender, age: user.age, bloodGroup: user.bloodGroup,
+                allergicInfo: user.allergicInfo, medicalHistory: user.medicalHistory,
+                createdAt: user.createdAt
+            },
         });
     } catch (err) {
         console.error('Register error:', err);
@@ -75,7 +80,12 @@ export async function login(req: AuthRequest, res: Response): Promise<void> {
 
         res.json({
             token,
-            user: { id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role, createdAt: user.createdAt },
+            user: {
+                id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role,
+                gender: user.gender, age: user.age, bloodGroup: user.bloodGroup,
+                allergicInfo: user.allergicInfo, medicalHistory: user.medicalHistory,
+                createdAt: user.createdAt
+            },
         });
     } catch (err) {
         console.error('Login error:', err);
@@ -92,7 +102,11 @@ export async function getMe(req: AuthRequest, res: Response): Promise<void> {
 
         const user = await prisma.user.findUnique({
             where: { id: req.user.id },
-            select: { id: true, email: true, name: true, phone: true, role: true, createdAt: true },
+            select: {
+                id: true, email: true, name: true, phone: true, role: true,
+                gender: true, age: true, bloodGroup: true, allergicInfo: true, medicalHistory: true,
+                createdAt: true
+            },
         });
 
         if (!user) {

@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { serviceApi, addressApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2 } from 'lucide-react';
 import AddressMap from '../components/AddressMap';
 
-const SERVICE_TYPES = [
-    'General Checkup', 'Vitals Monitoring', 'Wound Dressing', 'IV Therapy',
-    'Injection', 'Post-Operative Care', 'Elderly Care', 'Pediatric Nursing',
-    'Catheter Care', 'Emergency Assessment',
-];
+import { SERVICE_CATEGORIES } from '../../../shared/patientDashboardConfig';
+
+const ALL_SERVICES = SERVICE_CATEGORIES.flatMap(cat => cat.services.map(s => s.label));
 
 export default function BookVisit() {
+    const location = useLocation();
+    const preState = (location.state as any) || {};
+
     const [form, setForm] = useState({
-        serviceType: '',
-        symptoms: '',
+        serviceType: preState.preSelectedService || '',
+        symptoms: preState.symptoms || '',
         location: '',
         scheduledTime: '',
         locationDetails: null as any,
@@ -141,11 +142,16 @@ export default function BookVisit() {
                             <button className="btn btn-ghost btn-sm" onClick={() => setShowNewAddress(false)}>&times;</button>
                         </div>
                         <div style={{ marginBottom: 'var(--space-md)' }}>
-                            <AddressMap onLocationSelect={(lat, lng, addr) => {
+                            <AddressMap onLocationSelect={(lat, lng, addr, parts) => {
                                 setNewAddress(prev => ({
                                     ...prev,
                                     location: { lat, lng },
-                                    address: addr
+                                    address: addr,
+                                    area: parts?.area || prev.area,
+                                    city: parts?.city || prev.city,
+                                    pincode: parts?.pincode || prev.pincode,
+                                    landmark: parts?.landmark || prev.landmark,
+                                    buildingName: parts?.building || prev.buildingName,
                                 }));
                             }} />
                         </div>
@@ -224,12 +230,11 @@ export default function BookVisit() {
                 </div>
             )}
 
-            <div className="page-header">
-                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/patient')} style={{ marginBottom: 'var(--space-sm)' }}>
-                    <ArrowLeft size={16} /> Back to Dashboard
+            <div className="page-header" style={{ marginBottom: 'var(--space-md)' }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => navigate('/patient')} style={{ marginBottom: 4, padding: '4px 8px' }}>
+                    <ArrowLeft size={14} /> Back
                 </button>
-                <h1 className="page-title">Book a Medical Visit</h1>
-                <p className="page-subtitle">Fill in the details to request a nurse visit.</p>
+                <h1 className="page-title" style={{ fontSize: '1.25rem', marginTop: 4 }}>Book Visit</h1>
             </div>
 
             <div className="card" style={{ maxWidth: 600 }}>
@@ -239,16 +244,18 @@ export default function BookVisit() {
                     <div className="form-group">
                         <label className="form-label"><Stethoscope size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Service Type</label>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                            {SERVICE_TYPES.map((type) => (
+                            {ALL_SERVICES.map((type: string) => (
                                 <button
                                     key={type} type="button" onClick={() => update('serviceType', type)}
                                     style={{
-                                        padding: '10px 12px', borderRadius: 'var(--radius-md)', fontSize: '0.813rem',
-                                        fontWeight: form.serviceType === type ? 700 : 400, textAlign: 'left',
+                                        padding: '12px 10px', borderRadius: 'var(--radius-md)', fontSize: '0.75rem',
+                                        fontWeight: form.serviceType === type ? 700 : 400, textAlign: 'center',
                                         background: form.serviceType === type ? 'var(--primary-bg)' : 'var(--bg)',
                                         border: `1.5px solid ${form.serviceType === type ? 'var(--primary)' : 'var(--border)'}`,
                                         color: form.serviceType === type ? 'var(--primary)' : 'var(--text-secondary)',
                                         cursor: 'pointer', transition: 'var(--transition)',
+                                        height: '100%', minHeight: '54px',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
                                 >
                                     {type}
@@ -295,22 +302,23 @@ export default function BookVisit() {
                                             }));
                                         }}
                                         style={{
-                                            padding: '10px 12px', borderRadius: 'var(--radius-lg)',
+                                            padding: '12px', borderRadius: 'var(--radius-lg)',
                                             border: `1.5px solid ${form.addressId === addr.id ? 'var(--primary)' : 'var(--border)'}`,
                                             background: form.addressId === addr.id ? 'var(--primary-bg)' : 'var(--bg)',
                                             cursor: 'pointer', transition: 'var(--transition)',
                                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            gap: 8
                                         }}
                                     >
-                                        <div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
                                             <div style={{ fontWeight: 600, fontSize: '0.813rem' }}>{addr.label}</div>
-                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 400 }}>{addr.address}</div>
+                                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{addr.address}</div>
                                         </div>
                                         <button
                                             onClick={(e) => handleDeleteAddress(addr.id, e)}
-                                            style={{ padding: 4, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer' }}
+                                            style={{ padding: 8, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
                                         >
-                                            <Trash2 size={14} />
+                                            <Trash2 size={16} />
                                         </button>
                                     </div>
                                 ))}

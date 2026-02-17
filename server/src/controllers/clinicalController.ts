@@ -7,7 +7,9 @@ import { validateNurseSubmission, canAutoClose, getFlowConfig } from '../service
 export async function submitClinicalReport(req: AuthRequest, res: Response): Promise<void> {
     try {
         const serviceId = req.params.serviceId as string;
-        const { vitalsJson, nurseNotes, triageLevel, attachments } = req.body;
+        const {
+            vitalsJson, nurseNotes, triageLevel, attachments
+        } = req.body;
         const nurseId = req.user!.id;
 
         if (!vitalsJson || !nurseNotes || !triageLevel) {
@@ -32,36 +34,70 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
             return;
         }
 
+        // Determine submission stage
+        const existingReport = await prisma.clinicalReport.findUnique({ where: { serviceId } });
+        const doctorAction = await prisma.doctorAction.findUnique({ where: { serviceId } });
+        const flowConfig = getFlowConfig(service.serviceType);
+        const isEditRequest = doctorAction?.requestNurseEdit === true;
+
+        let currentStage: 'assessment' | 'procedure' = 'assessment';
+        if (existingReport && flowConfig?.requiresProcedureApproval && doctorAction?.procedureApproved && !isEditRequest) {
+            currentStage = 'procedure';
+        }
+
         // ============ SERVICE-SPECIFIC VALIDATION ============
         const validationErrors = validateNurseSubmission(
             service.serviceType,
             vitalsJson,
             attachments || [],
+            currentStage // Pass current stage for validation
         );
 
         if (validationErrors.length > 0) {
             res.status(400).json({
-                error: 'Validation failed for service-specific requirements',
+                error: `Validation failed for ${currentStage} stage`,
                 details: validationErrors,
             });
             return;
         }
 
-        // Check existing report
-        const existing = await prisma.clinicalReport.findUnique({ where: { serviceId } });
-        if (existing) {
-            res.status(409).json({ error: 'Clinical report already submitted for this case' });
-            return;
+        if (!isEditRequest && currentStage === 'assessment') {
+            // Check existing report only for initial assessment and not an edit request
+            if (existingReport) {
+                res.status(409).json({ error: 'Clinical assessment already submitted for this case' });
+                return;
+            }
         }
 
-        // Determine next status: auto-close for Injection with no reaction, else await doctor
-        const shouldAutoClose = canAutoClose(service.serviceType, vitalsJson);
-        const nextStatus = shouldAutoClose ? 'doctor_completed' : 'awaiting_doctor_review';
+        // Determine next status
+        let nextStatus: string;
+        if (currentStage === 'procedure') {
+            // Procedure complete — check if it can auto-close
+            if (canAutoClose(service.serviceType, vitalsJson)) {
+                nextStatus = 'doctor_completed';
+            } else {
+                nextStatus = 'awaiting_doctor_review';
+            }
+        } else {
+            // Assessment complete — check restricted flow
+            if (flowConfig?.requiresProcedureApproval) {
+                nextStatus = 'awaiting_doctor_approval';
+            } else {
+                nextStatus = 'awaiting_doctor_review';
+            }
+        }
 
-        // Create report and update status in transaction
+        // Create or update report and update status in transaction
         const [report] = await prisma.$transaction([
-            prisma.clinicalReport.create({
-                data: {
+            prisma.clinicalReport.upsert({
+                where: { serviceId },
+                update: {
+                    vitalsJson,
+                    nurseNotes,
+                    triageLevel: triageLevel as any,
+                    attachments: attachments || [],
+                },
+                create: {
                     serviceId,
                     vitalsJson,
                     nurseNotes,
@@ -73,7 +109,16 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
                 where: { id: serviceId },
                 data: { status: nextStatus as any },
             }),
+            // If it was an edit request, reset the flag in doctorAction
+            ...(isEditRequest ? [
+                prisma.doctorAction.update({
+                    where: { serviceId },
+                    data: { requestNurseEdit: false }
+                })
+            ] : [])
         ]);
+
+        const shouldAutoClose = nextStatus === 'doctor_completed';
 
         await logAudit(nurseId, 'SUBMIT_VITALS', 'ClinicalReport', report.id);
 
@@ -91,7 +136,6 @@ export async function submitClinicalReport(req: AuthRequest, res: Response): Pro
             io.to('role:admin').emit('vitals_submitted', { serviceId, triageLevel });
 
             // Emergency priority alert
-            const flowConfig = getFlowConfig(service.serviceType);
             if (flowConfig?.isEmergency) {
                 io.to('role:doctor').emit('emergency_alert_triggered', {
                     serviceId,

@@ -5,8 +5,9 @@ export const SERVICE_STATUS_TRANSITIONS: Record<ServiceStatus, ServiceStatus[]> 
     [ServiceStatus.PENDING_NURSE_ASSIGNMENT]: [ServiceStatus.NURSE_ASSIGNED, ServiceStatus.CANCELLED],
     [ServiceStatus.NURSE_ASSIGNED]: [ServiceStatus.NURSE_ON_THE_WAY, ServiceStatus.CANCELLED],
     [ServiceStatus.NURSE_ON_THE_WAY]: [ServiceStatus.VITALS_RECORDED, ServiceStatus.CANCELLED],
-    [ServiceStatus.VITALS_RECORDED]: [ServiceStatus.AWAITING_DOCTOR_REVIEW, ServiceStatus.CANCELLED],
+    [ServiceStatus.VITALS_RECORDED]: [ServiceStatus.AWAITING_DOCTOR_REVIEW, ServiceStatus.AWAITING_DOCTOR_APPROVAL, ServiceStatus.CANCELLED],
     [ServiceStatus.AWAITING_DOCTOR_REVIEW]: [ServiceStatus.DOCTOR_COMPLETED, ServiceStatus.CANCELLED],
+    [ServiceStatus.AWAITING_DOCTOR_APPROVAL]: [ServiceStatus.DOCTOR_COMPLETED, ServiceStatus.CANCELLED],
     [ServiceStatus.DOCTOR_COMPLETED]: [ServiceStatus.COMPLETED, ServiceStatus.CANCELLED],
     [ServiceStatus.COMPLETED]: [],
     [ServiceStatus.CANCELLED]: [],
@@ -18,7 +19,9 @@ export const STATUS_TRANSITION_ROLES: Record<string, UserRole[]> = {
     [`${ServiceStatus.NURSE_ASSIGNED}->${ServiceStatus.NURSE_ON_THE_WAY}`]: [UserRole.NURSE],
     [`${ServiceStatus.NURSE_ON_THE_WAY}->${ServiceStatus.VITALS_RECORDED}`]: [UserRole.NURSE],
     [`${ServiceStatus.VITALS_RECORDED}->${ServiceStatus.AWAITING_DOCTOR_REVIEW}`]: [UserRole.NURSE],
+    [`${ServiceStatus.VITALS_RECORDED}->${ServiceStatus.AWAITING_DOCTOR_APPROVAL}`]: [UserRole.NURSE],
     [`${ServiceStatus.AWAITING_DOCTOR_REVIEW}->${ServiceStatus.DOCTOR_COMPLETED}`]: [UserRole.DOCTOR],
+    [`${ServiceStatus.AWAITING_DOCTOR_APPROVAL}->${ServiceStatus.DOCTOR_COMPLETED}`]: [UserRole.DOCTOR],
     [`${ServiceStatus.DOCTOR_COMPLETED}->${ServiceStatus.COMPLETED}`]: [UserRole.ADMIN, UserRole.DOCTOR],
 };
 

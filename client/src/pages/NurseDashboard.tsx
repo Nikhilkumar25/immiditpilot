@@ -48,11 +48,11 @@ export default function NurseDashboard() {
 
     return (
         <div>
-            <div className="page-header">
-                <h1 className="page-title">Nurse Dashboard</h1>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <p className="page-subtitle">{cases.length} active case{cases.length !== 1 ? 's' : ''} · {labTasks.length} lab task{labTasks.length !== 1 ? 's' : ''}</p>
-                    <div className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', padding: '6px 12px', borderRadius: '20px', fontSize: '0.875rem', fontWeight: 600 }}>
+            <div className="page-header" style={{ marginBottom: 'var(--space-lg)' }}>
+                <h1 className="page-title">Dashboard</h1>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                    <p className="page-subtitle" style={{ fontSize: '0.875rem' }}>{cases.length} active case{cases.length !== 1 ? 's' : ''} · {labTasks.length} lab task{labTasks.length !== 1 ? 's' : ''}</p>
+                    <div className="badge" style={{ background: 'var(--success-bg)', color: 'var(--success)', padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, alignSelf: 'flex-start' }}>
                         🏆 {stats.completedToday} Completed Today
                     </div>
                 </div>
@@ -117,11 +117,11 @@ export default function NurseDashboard() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-sm)', flexShrink: 0 }}>
                                         {triage && (
-                                            <span className={`badge badge-${triage}`}>{triage}</span>
+                                            <span className={`badge badge-${triage}`} style={{ fontSize: '0.625rem' }}>{triage}</span>
                                         )}
-                                        <span className="badge badge-primary">{STATUS_LABELS[c.status] || c.status.replace(/_/g, ' ')}</span>
+                                        <span className="badge badge-primary desktop-only">{STATUS_LABELS[c.status] || c.status.replace(/_/g, ' ')}</span>
                                         <ChevronRight size={18} color="var(--text-muted)" />
                                     </div>
                                 </div>
