@@ -13,4 +13,18 @@ export default defineConfig({
             '@shared': path.resolve(__dirname, '../shared'),
         },
     },
+    server: {
+        port: 5173,
+        allowedHosts: ['inspections-tunnel-galaxy-making.trycloudflare.com', 'poor-greetings-philips-orlando.trycloudflare.com'],
+        proxy: {
+            '/api': {
+                target: 'http://localhost:3001',
+                changeOrigin: true,
+            },
+            '/socket.io': {
+                target: 'http://localhost:3001',
+                ws: true,
+            },
+        },
+    },
 });
