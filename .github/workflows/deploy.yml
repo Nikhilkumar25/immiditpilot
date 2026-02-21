@@ -1,0 +1,52 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: github-deployer@immidit.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-south1-docker.pkg.dev
+
+      - name: Build & Push
+        run: |
+          IMAGE=asia-south1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/immidit-repo/immidit:${{ github.sha }}
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy immidit \
+            --image=$IMAGE \
+            --region=asia-south1 \
+            --platform=managed \
+            --allow-unauthenticated \
+            --session-affinity \
+            --memory=512Mi \
+            --cpu=1 \
+            --timeout=3600 \
+            --concurrency=100 \
+            --min-instances=0 \
+            --max-instances=5 \
+            --service-account=immidit-runtime@immidit.iam.gserviceaccount.com \
+            --set-env-vars NODE_ENV=production,CLIENT_URL=${{ vars.CLIENT_URL }},JWT_EXPIRES_IN=2d,REFRESH_TOKEN_EXPIRES_IN=365d,GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }} \
+            --set-secrets  RECAPTCHA_SECRET_KEY=RECAPTCHA_SECRET_KEY:latest,JWT_SECRET=JWT_SECRET:latest,JWT_REFRESH_SECRET=JWT_REFRESH_SECRET:latest,FASTAPI_KEY=FASTAPI_KEY:latest,DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest
