@@ -15,7 +15,7 @@ interface RecaptchaResponse {
 }
 
 const RECAPTCHA_VERIFY_URL = 'https://www.google.com/recaptcha/api/siteverify';
-const MIN_SCORE = 0.5;
+const MIN_SCORE = 0.3;
 
 export async function verifyCaptcha(req: Request, res: Response, next: NextFunction): Promise<void> {
     // Skip CAPTCHA entirely in non-production environments
