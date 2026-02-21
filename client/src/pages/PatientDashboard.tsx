@@ -347,7 +347,7 @@ export default function PatientDashboard() {
     };
 
     // ─── Derived Data ───
-    const activeCase = services.find((s) => !['completed', 'cancelled'].includes(s.status));
+    const activeCases = services.filter((s) => !['completed', 'cancelled'].includes(s.status));
     const history = services.filter((s) => ['completed', 'cancelled'].includes(s.status));
     const pendingLabs = labOrders.filter((l) => l.status === 'pending_patient_confirmation');
 
@@ -365,36 +365,40 @@ export default function PatientDashboard() {
             <UseCaseCarousel useCases={useCases} />
 
             {/* ─── Active Case Tracker ─── */}
-            {activeCase && (
+            {activeCases.length > 0 && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
                     <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div className="status-dot active" /> Active Case
+                        <div className="status-dot active" /> Active Cases
                     </h2>
-                    <div className="card" style={{ cursor: 'pointer', padding: 'var(--space-md)' }} onClick={() => navigate(`/patient/service/${activeCase.id}`)}>
-                        <div style={{ overflowX: 'auto', marginBottom: 'var(--space-md)' }}>
-                            <CaseTracker status={activeCase.status} />
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 600, fontSize: '0.938rem' }}>{activeCase.serviceType}</div>
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                                    <MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>{activeCase.location}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                        {activeCases.map((activeCase) => (
+                            <div key={activeCase.id} className="card" style={{ cursor: 'pointer', padding: 'var(--space-md)' }} onClick={() => navigate(`/patient/service/${activeCase.id}`)}>
+                                <div style={{ overflowX: 'auto', marginBottom: 'var(--space-md)' }}>
+                                    <CaseTracker status={activeCase.status} />
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontWeight: 600, fontSize: '0.938rem' }}>{activeCase.serviceType}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                                            <MapPin size={12} /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>{activeCase.location}</span>
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                        {CANCELLABLE.includes(activeCase.status) && (
+                                            <button
+                                                className="btn btn-sm desktop-only"
+                                                style={{ color: 'var(--critical)', borderColor: 'var(--critical)', background: 'transparent' }}
+                                                onClick={(e) => { e.stopPropagation(); handleCancel(activeCase.id); }}
+                                                disabled={cancelling}
+                                            >
+                                                <XCircle size={14} /> {cancelling ? '...' : 'Cancel'}
+                                            </button>
+                                        )}
+                                        <ChevronRight size={20} color="var(--text-muted)" />
+                                    </div>
                                 </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                                {CANCELLABLE.includes(activeCase.status) && (
-                                    <button
-                                        className="btn btn-sm desktop-only"
-                                        style={{ color: 'var(--critical)', borderColor: 'var(--critical)', background: 'transparent' }}
-                                        onClick={(e) => { e.stopPropagation(); handleCancel(activeCase.id); }}
-                                        disabled={cancelling}
-                                    >
-                                        <XCircle size={14} /> {cancelling ? '...' : 'Cancel'}
-                                    </button>
-                                )}
-                                <ChevronRight size={20} color="var(--text-muted)" />
-                            </div>
-                        </div>
+                        ))}
                     </div>
                 </div>
             )}

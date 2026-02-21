@@ -39,7 +39,7 @@ export default function AdminInventory() {
         <div style={{ padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Inventory Management</h1>
-                <button onClick={() => { setEditing({ name: '', sku: '', unit: 'Pcs', currentStock: 0, reorderLevel: 10, costPrice: 0, salePrice: 0, active: true }); setShowForm(true); }} style={btn}><Plus size={16} /> Add Item</button>
+                <button onClick={() => { setEditing({ name: '', sku: '', category: 'General', unit: 'Pcs', currentStock: 0, reorderLevel: 10, costPrice: 0, salePrice: 0, active: true }); setShowForm(true); }} style={btn}><Plus size={16} /> Add Item</button>
             </div>
 
             {lowStock.length > 0 && (
@@ -57,11 +57,12 @@ export default function AdminInventory() {
             <div style={{ background: 'white', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead><tr style={{ background: '#F8F9FB', borderBottom: '1px solid #E1E5EB' }}>
-                        <th style={th}>Name</th><th style={th}>SKU</th><th style={th}>Stock</th><th style={th}>Reorder</th><th style={th}>Cost</th><th style={th}>Sale</th><th style={th}>Actions</th>
+                        <th style={th}>Name</th><th style={th}>Category</th><th style={th}>SKU</th><th style={th}>Stock</th><th style={th}>Reorder</th><th style={th}>Cost</th><th style={th}>Sale</th><th style={th}>Actions</th>
                     </tr></thead>
                     <tbody>{filtered.map(item => (
                         <tr key={item.id} style={{ borderBottom: '1px solid #F0F1F3', background: item.currentStock <= item.reorderLevel ? '#FFF8E1' : undefined }}>
                             <td style={td}><strong>{item.name}</strong><div style={{ fontSize: 11, color: '#999' }}>{item.unit}</div></td>
+                            <td style={td}><span style={{ padding: '4px 8px', background: 'var(--primary-bg)', color: 'var(--primary)', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>{item.category || 'General'}</span></td>
                             <td style={td}><code style={{ background: '#F0F1F3', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>{item.sku || '—'}</code></td>
                             <td style={td}><span style={{ fontWeight: 700, color: item.currentStock <= item.reorderLevel ? '#E74C3C' : 'inherit' }}>{item.currentStock}</span></td>
                             <td style={td}>{item.reorderLevel}</td>
@@ -83,8 +84,16 @@ export default function AdminInventory() {
                     <h2 style={{ marginBottom: 20 }}>{editing.id ? 'Edit' : 'Add'} Item</h2>
                     <div style={{ display: 'grid', gap: 12 }}>
                         <label>Name <input value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} style={input} /></label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                             <label>SKU <input value={editing.sku || ''} onChange={e => setEditing({ ...editing, sku: e.target.value })} style={input} /></label>
+                            <label>Category
+                                <select value={editing.category || 'General'} onChange={e => setEditing({ ...editing, category: e.target.value })} style={input}>
+                                    <option value="General">General</option>
+                                    <option value="Consumable">Consumable</option>
+                                    <option value="Medicine">Medicine</option>
+                                    <option value="Injectable">Injectable</option>
+                                </select>
+                            </label>
                             <label>Unit <input value={editing.unit} onChange={e => setEditing({ ...editing, unit: e.target.value })} style={input} /></label>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

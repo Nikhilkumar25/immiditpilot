@@ -7,7 +7,11 @@ import { VALID_SERVICE_TYPES, getFlowConfig, SERVICE_FLOW_CONFIG } from '../serv
 
 export async function createServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
-        const { serviceType, serviceCategory, symptoms, location, locationDetails, scheduledTime, isImmediate, addressId } = req.body;
+        const {
+            serviceType, serviceCategory, symptoms, location, locationDetails,
+            scheduledTime, isImmediate, addressId,
+            hasProvidedMedication, requiredMedicationId, requiredMedicationName, medicationCost
+        } = req.body;
         const patientId = req.user!.id;
 
         if (!serviceType || !symptoms || !location || !scheduledTime) {
@@ -20,6 +24,37 @@ export async function createServiceRequest(req: AuthRequest, res: Response): Pro
             res.status(400).json({ error: `Invalid service type: ${serviceType}. Valid types: ${VALID_SERVICE_TYPES.join(', ')}` });
             return;
         }
+
+        // --- ENFORCE BOOKING LIMITS ---
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        // 1. Max 4 bookings per day
+        const dailyBookingsCount = await prisma.serviceRequest.count({
+            where: {
+                patientId,
+                createdAt: { gte: startOfDay },
+            },
+        });
+
+        if (dailyBookingsCount >= 4) {
+            res.status(400).json({ error: 'You have reached the maximum limit of 4 bookings per day.' });
+            return;
+        }
+
+        // 2. Max 2 active bookings at any given time (e.g., 1 ongoing + 1 scheduled)
+        const activeBookingsCount = await prisma.serviceRequest.count({
+            where: {
+                patientId,
+                status: { notIn: ['completed', 'cancelled'] as any },
+            },
+        });
+
+        if (activeBookingsCount >= 2) {
+            res.status(400).json({ error: 'You already have 2 active bookings. Please wait for them to complete before booking another.' });
+            return;
+        }
+        // ------------------------------
 
         // Compute scheduledEndTime (20-min slot)
         const startTime = new Date(scheduledTime);
@@ -56,7 +91,11 @@ export async function createServiceRequest(req: AuthRequest, res: Response): Pro
                 addressId,
                 scheduledTime: startTime,
                 scheduledEndTime: endTime,
-                status: 'pending_nurse_assignment'
+                status: 'pending_nurse_assignment',
+                hasProvidedMedication,
+                requiredMedicationId,
+                requiredMedicationName,
+                medicationCost
             } as any,
             include: { patient: { select: { id: true, name: true, phone: true, email: true, role: true } } },
         });

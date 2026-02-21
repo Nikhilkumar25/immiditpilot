@@ -69,6 +69,10 @@ export interface ServiceRequest {
   scheduledTime: string;
   createdAt: string;
   updatedAt: string;
+  hasProvidedMedication?: boolean;
+  requiredMedicationId?: string;
+  requiredMedicationName?: string;
+  medicationCost?: number;
   patient?: User;
   nurse?: User;
   doctor?: User;

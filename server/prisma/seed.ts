@@ -115,6 +115,7 @@ async function main() {
             { title: 'Instant IV Drip', subtitle: 'Dehydration? Get relief at home', ctaText: 'Book Now', ctaAction: '/patient/book', themeColor: '#20B2AA', order: 4 },
             { title: 'Vaccinations at Home', subtitle: 'No hospital visits needed', ctaText: 'See Vaccines', ctaAction: '/patient/book', themeColor: '#9B59B6', order: 5 },
         ],
+        skipDuplicates: true,
     });
     console.log('✅ 5 landing page use cases seeded');
 
@@ -129,6 +130,7 @@ async function main() {
             { eventType: 'payment_success', title: 'Payment Confirmed', messageTemplate: '₹{{amount}} paid for {{serviceName}}.', deliveryChannel: 'both' },
             { eventType: 'follow_up_reminder', title: 'Follow-Up Due', messageTemplate: 'Your follow-up visit is due on {{dueDate}}.', deliveryChannel: 'both' },
         ],
+        skipDuplicates: true,
     });
     console.log('✅ 7 notification templates seeded');
 
@@ -141,6 +143,7 @@ async function main() {
             { name: 'Wound Dressing', defaultDiagnosisText: 'Wound — clean, no signs of infection', defaultAdvice: 'Keep wound dry, change dressing daily. Apply antibiotic ointment. Return if swelling/redness worsens.', defaultFollowUpDays: 3 },
             { name: 'Post-Vaccination', defaultDiagnosisText: 'Post-vaccination observation complete', defaultAdvice: 'Mild fever/soreness is normal for 24-48 hours. Paracetamol if needed. Seek care if high fever persists > 48 hours.', defaultFollowUpDays: 0 },
         ],
+        skipDuplicates: true,
     });
     console.log('✅ 5 prescription templates seeded');
 
@@ -154,29 +157,39 @@ async function main() {
             { triggerCondition: 'dengue_monitoring', followUpDays: 1, followUpType: 'nurse_visit', mandatory: true },
             { triggerCondition: 'elder_care', followUpDays: 30, followUpType: 'nurse_visit', mandatory: true },
         ],
+        skipDuplicates: true,
     });
     console.log('✅ 6 follow-up protocols seeded');
 
     // ═══ INVENTORY ITEMS ═══
     await prisma.inventoryItem.createMany({
         data: [
-            { name: 'Disposable Syringe 5ml', sku: 'SYR-5ML', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 5, salePrice: 10 },
-            { name: 'Disposable Syringe 10ml', sku: 'SYR-10ML', unit: 'Pcs', currentStock: 150, reorderLevel: 50, costPrice: 7, salePrice: 12 },
-            { name: 'Cotton Roll (500g)', sku: 'COT-500', unit: 'Roll', currentStock: 30, reorderLevel: 10, costPrice: 80, salePrice: 0 },
-            { name: 'Surgical Gloves (pair)', sku: 'GLV-SURG', unit: 'Pair', currentStock: 300, reorderLevel: 100, costPrice: 8, salePrice: 0 },
-            { name: 'Spirit Swab', sku: 'SWB-SPRT', unit: 'Pcs', currentStock: 500, reorderLevel: 100, costPrice: 2, salePrice: 0 },
-            { name: 'IV Cannula 20G', sku: 'IVC-20G', unit: 'Pcs', currentStock: 100, reorderLevel: 30, costPrice: 25, salePrice: 50 },
-            { name: 'IV Set (Standard)', sku: 'IVS-STD', unit: 'Pcs', currentStock: 80, reorderLevel: 20, costPrice: 35, salePrice: 60 },
-            { name: 'Normal Saline 500ml', sku: 'NS-500', unit: 'Bottle', currentStock: 50, reorderLevel: 15, costPrice: 40, salePrice: 80 },
-            { name: 'Dextrose 5% 500ml', sku: 'DEX-500', unit: 'Bottle', currentStock: 40, reorderLevel: 15, costPrice: 45, salePrice: 90 },
-            { name: 'Crepe Bandage 4"', sku: 'BND-CRP4', unit: 'Pcs', currentStock: 60, reorderLevel: 20, costPrice: 30, salePrice: 50 },
-            { name: 'Micropore Tape', sku: 'TPE-MIC', unit: 'Roll', currentStock: 40, reorderLevel: 15, costPrice: 25, salePrice: 0 },
-            { name: 'Vacutainer (EDTA)', sku: 'VCT-EDTA', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 15, salePrice: 0 },
-            { name: 'Vacutainer (Plain)', sku: 'VCT-PLN', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 12, salePrice: 0 },
-            { name: 'Tourniquet', sku: 'TRNQ', unit: 'Pcs', currentStock: 20, reorderLevel: 5, costPrice: 50, salePrice: 0 },
-            { name: 'Paracetamol 500mg', sku: 'MED-PCM', unit: 'Strip', currentStock: 100, reorderLevel: 30, costPrice: 8, salePrice: 15 },
-            { name: 'ORS Sachet', sku: 'MED-ORS', unit: 'Sachet', currentStock: 80, reorderLevel: 30, costPrice: 5, salePrice: 10 },
+            { name: 'Disposable Syringe 5ml', sku: 'SYR-5ML', category: 'Consumable', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 5, salePrice: 10 },
+            { name: 'Disposable Syringe 10ml', sku: 'SYR-10ML', category: 'Consumable', unit: 'Pcs', currentStock: 150, reorderLevel: 50, costPrice: 7, salePrice: 12 },
+            { name: 'Cotton Roll (500g)', sku: 'COT-500', category: 'General', unit: 'Roll', currentStock: 30, reorderLevel: 10, costPrice: 80, salePrice: 0 },
+            { name: 'Surgical Gloves (pair)', sku: 'GLV-SURG', category: 'General', unit: 'Pair', currentStock: 300, reorderLevel: 100, costPrice: 8, salePrice: 0 },
+            { name: 'Spirit Swab', sku: 'SWB-SPRT', category: 'Consumable', unit: 'Pcs', currentStock: 500, reorderLevel: 100, costPrice: 2, salePrice: 0 },
+            { name: 'IV Cannula 20G', sku: 'IVC-20G', category: 'Consumable', unit: 'Pcs', currentStock: 100, reorderLevel: 30, costPrice: 25, salePrice: 50 },
+            { name: 'IV Set (Standard)', sku: 'IVS-STD', category: 'Consumable', unit: 'Pcs', currentStock: 80, reorderLevel: 20, costPrice: 35, salePrice: 60 },
+            { name: 'Normal Saline 500ml', sku: 'NS-500', category: 'Medicine', unit: 'Bottle', currentStock: 50, reorderLevel: 15, costPrice: 40, salePrice: 80 },
+            { name: 'Dextrose 5% 500ml', sku: 'DEX-500', category: 'Medicine', unit: 'Bottle', currentStock: 40, reorderLevel: 15, costPrice: 45, salePrice: 90 },
+            { name: 'Vacutainer (EDTA)', sku: 'VCT-EDTA', category: 'Consumable', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 15, salePrice: 0 },
+            { name: 'Vacutainer (Plain)', sku: 'VCT-PLN', category: 'Consumable', unit: 'Pcs', currentStock: 200, reorderLevel: 50, costPrice: 12, salePrice: 0 },
+            { name: 'Tourniquet', sku: 'TRNQ', category: 'General', unit: 'Pcs', currentStock: 20, reorderLevel: 5, costPrice: 50, salePrice: 0 },
+            { name: 'Paracetamol 500mg', sku: 'MED-PCM', category: 'Medicine', unit: 'Strip', currentStock: 100, reorderLevel: 30, costPrice: 8, salePrice: 15 },
+            { name: 'ORS Sachet', sku: 'MED-ORS', category: 'Medicine', unit: 'Sachet', currentStock: 80, reorderLevel: 30, costPrice: 5, salePrice: 10 },
+
+            // New Injectables Category for vaccines/injections
+            { name: 'Hepatitis A Vaccine', sku: 'VAX-HEPA', category: 'Injectable', unit: 'Vial', currentStock: 50, reorderLevel: 10, costPrice: 1200, salePrice: 1500 },
+            { name: 'Hepatitis B Vaccine', sku: 'VAX-HEPB', category: 'Injectable', unit: 'Vial', currentStock: 100, reorderLevel: 20, costPrice: 150, salePrice: 250 },
+            { name: 'HPV Vaccine (Gardasil)', sku: 'VAX-HPV', category: 'Injectable', unit: 'Vial', currentStock: 20, reorderLevel: 5, costPrice: 3500, salePrice: 4000 },
+            { name: 'Flu Shot (Quadrivalent)', sku: 'VAX-FLU', category: 'Injectable', unit: 'Vial', currentStock: 200, reorderLevel: 30, costPrice: 1200, salePrice: 1499 },
+            { name: 'Tetanus Toxoid (TT)', sku: 'VAX-TT', category: 'Injectable', unit: 'Ampoule', currentStock: 150, reorderLevel: 50, costPrice: 15, salePrice: 30 },
+            { name: 'Rabies Vaccine', sku: 'VAX-RAB', category: 'Injectable', unit: 'Vial', currentStock: 80, reorderLevel: 20, costPrice: 300, salePrice: 450 },
+            { name: 'Insulin (Glargine)', sku: 'INJ-INSULIN', category: 'Injectable', unit: 'Pen', currentStock: 60, reorderLevel: 15, costPrice: 400, salePrice: 550 },
+            { name: 'Vitamin B12 Injection', sku: 'INJ-B12', category: 'Injectable', unit: 'Ampoule', currentStock: 100, reorderLevel: 20, costPrice: 10, salePrice: 25 },
         ],
+        skipDuplicates: true,
     });
     console.log('✅ 16 inventory items seeded');
 
