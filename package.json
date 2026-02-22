@@ -17,7 +17,7 @@
     "install:all": "npm install && cd server && npm install && cd ../client && npm install --legacy-peer-deps",
     "db:migrate": "cd server && npx prisma migrate deploy",
     "db:generate": "cd server && npx prisma generate",
-    "db:seed": "cd server && npx prisma db seed"
+    "db:seed": "cd server && npm run db:seed"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

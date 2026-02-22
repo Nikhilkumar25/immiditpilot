@@ -6,92 +6,69 @@ const prisma = new PrismaClient();
 async function main() {
     console.log('🌱 Seeding database...');
 
-    // Create demo users
-    const password = await bcrypt.hash('password123', 12);
+    const password = await bcrypt.hash('12121212', 12);
+    const adminPassword = await bcrypt.hash('minusone', 12);
 
-    const patient = await prisma.user.upsert({
-        where: { email: 'patient@immidit.com' },
-        update: {
-            gender: 'Male',
-            age: 28,
-            bloodGroup: 'O+',
-            allergicInfo: 'Peanuts, Penicillin',
-            medicalHistory: 'Asthma (controlled)',
-        },
-        create: {
-            id: '7f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            email: 'patient@immidit.com',
-            passwordHash: password,
-            name: 'Rahul Sharma',
-            phone: '+91 9876543210',
-            role: 'patient',
-            gender: 'Male',
-            age: 28,
-            bloodGroup: 'O+',
-            allergicInfo: 'Peanuts, Penicillin',
-            medicalHistory: 'Asthma (controlled)',
-        },
-    });
-
-    const nurse = await prisma.user.upsert({
-        where: { email: 'nurse@immidit.com' },
-        update: {},
-        create: {
-            id: '8f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            email: 'nurse@immidit.com',
-            passwordHash: password,
-            name: 'Priya Singh',
-            phone: '+91 9876543211',
-            role: 'nurse',
-        },
-    });
-
-    const doctor = await prisma.user.upsert({
-        where: { email: 'doctor@immidit.com' },
-        update: {},
-        create: {
-            id: '9f9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            email: 'doctor@immidit.com',
-            passwordHash: password,
-            name: 'Dr. Amit Patel',
-            phone: '+91 9876543212',
-            role: 'doctor',
-        },
-    });
-
+    // Seed admin user
     const admin = await prisma.user.upsert({
-        where: { email: 'admin@immidit.com' },
+        where: { phone: '0000000000' },
         update: {},
         create: {
-            id: 'af9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
             email: 'admin@immidit.com',
-            passwordHash: password,
+            passwordHash: adminPassword,
             name: 'Admin User',
-            phone: '+91 9876543213',
+            phone: '0000000000',
             role: 'admin',
         },
     });
 
-    const lab = await prisma.user.upsert({
-        where: { email: 'lab@immidit.com' },
-        update: {},
-        create: {
-            id: 'bf9b8c2d-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            email: 'lab@immidit.com',
-            passwordHash: password,
-            name: 'Lab Technician',
-            phone: '+91 9876543214',
-            role: 'lab',
-        },
-    });
+    const roles = ['patient', 'nurse', 'doctor', 'lab'] as const;
+    const roleSuffix: Record<string, string> = {
+        patient: '1',
+        nurse: '2',
+        doctor: '3',
+        lab: '4',
+    };
+    const roleNames: Record<string, string[]> = {
+        patient: ['Rahul Sharma', 'Priya Mehta', 'Ankit Verma', 'Sneha Gupta', 'Vikram Joshi'],
+        nurse: ['Neha Singh', 'Pooja Rao', 'Kavita Das', 'Sunita Yadav', 'Ritu Kumari'],
+        doctor: ['Dr. Amit Patel', 'Dr. Sonal Kapoor', 'Dr. Rajesh Nair', 'Dr. Meena Iyer', 'Dr. Sanjay Mishra'],
+        lab: ['Lab Tech Arun', 'Lab Tech Deepa', 'Lab Tech Manish', 'Lab Tech Rekha', 'Lab Tech Suresh'],
+    };
 
-    console.log('✅ Seeded users:');
-    console.log(`  Patient: ${patient.email}`);
-    console.log(`  Nurse:   ${nurse.email}`);
-    console.log(`  Doctor:  ${doctor.email}`);
-    console.log(`  Admin:   ${admin.email}`);
-    console.log(`  Lab:     ${lab.email}`);
-    console.log('  Password for all: password123');
+    const createdUsers: { role: string; name: string; phone: string }[] = [
+        { role: 'admin', name: admin.name, phone: admin.phone },
+    ];
+
+    for (let i = 0; i < 5; i++) {
+        for (const role of roles) {
+            const phone = `${i}00000000${roleSuffix[role]}`;
+            const name = roleNames[role][i];
+            const email = `${role}.dummy${i + 1}@immidit.com`;
+
+            const user = await prisma.user.upsert({
+                where: { phone },
+                update: {},
+                create: {
+                    email,
+                    passwordHash: password,
+                    name,
+                    phone,
+                    role,
+                },
+            });
+
+            createdUsers.push({ role, name: user.name, phone: user.phone });
+        }
+    }
+
+    console.log('✅ Seeded dummy users:');
+    console.log('─'.repeat(50));
+    for (const u of createdUsers) {
+        console.log(`  ${u.role.padEnd(8)} | ${u.name.padEnd(22)} | ${u.phone}`);
+    }
+    console.log('─'.repeat(50));
+    console.log('  Password for all: 12121212');
 }
 
 main()
