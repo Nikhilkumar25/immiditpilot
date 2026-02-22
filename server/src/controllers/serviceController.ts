@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 import { canTransitionService, hasLabPending } from '../services/statusEngine';
 import { logAudit } from '../services/auditService';
 import { VALID_SERVICE_TYPES, getFlowConfig, SERVICE_FLOW_CONFIG } from '../services/serviceFlowConfig';
+import { calculateDistanceKm } from '../utils/geoUtils';
 
 export async function createServiceRequest(req: AuthRequest, res: Response): Promise<void> {
     try {
@@ -24,6 +25,47 @@ export async function createServiceRequest(req: AuthRequest, res: Response): Pro
             res.status(400).json({ error: `Invalid service type: ${serviceType}. Valid types: ${VALID_SERVICE_TYPES.join(', ')}` });
             return;
         }
+
+        // --- ENFORCE GEOFENCING ---
+        let reqLat: number | null = null;
+        let reqLng: number | null = null;
+
+        if (addressId) {
+            const savedAddress = await prisma.savedAddress.findUnique({ where: { id: addressId } });
+            if (savedAddress && savedAddress.lat && savedAddress.lng) {
+                reqLat = savedAddress.lat;
+                reqLng = savedAddress.lng;
+            }
+        } else if (locationDetails && typeof locationDetails === 'object' && locationDetails.lat && locationDetails.lng) {
+            reqLat = locationDetails.lat;
+            reqLng = locationDetails.lng;
+        }
+
+        if (reqLat !== null && reqLng !== null) {
+            const activeZones = await prisma.zone.findMany({ where: { active: true } });
+            if (activeZones.length === 0) {
+                res.status(400).json({ error: 'Sorry, this location is outside our currently serviceable areas.' });
+                return;
+            }
+
+            let isInsideAnyZone = false;
+            for (const zone of activeZones) {
+                const dist = calculateDistanceKm(reqLat, reqLng, zone.centerLat, zone.centerLng);
+                if (dist <= zone.radiusKm) {
+                    isInsideAnyZone = true;
+                    break;
+                }
+            }
+
+            if (!isInsideAnyZone) {
+                res.status(400).json({ error: 'Sorry, this location is outside our currently serviceable areas.' });
+                return;
+            }
+        } else {
+            // Optional: You could reject requests without coordinates if strict geofencing is required.
+            // For now, if coordinates can't be found (rare), it proceeds to avoid breaking legacy addresses.
+        }
+        // --------------------------
 
         // --- ENFORCE BOOKING LIMITS ---
         const startOfDay = new Date();
