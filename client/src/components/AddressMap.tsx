@@ -51,7 +51,7 @@ class MapErrorBoundary extends Component<{ children: ReactNode }, { hasError: bo
         if (this.state.hasError) {
             return (
                 <div style={{
-                    height: 250, borderRadius: 'var(--radius-lg)', background: 'var(--bg)',
+                    height: 200, borderRadius: 'var(--radius-lg)', background: 'var(--bg)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                     color: 'var(--text-secondary)', gap: 8, border: '1px solid var(--border)',
                 }}>
@@ -191,7 +191,7 @@ const AddressMapContent: React.FC<AddressMapProps> = ({ onLocationSelect, initia
     return (
         <div style={{ position: 'relative', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
             {/* Map */}
-            <div ref={mapContainerRef} style={{ height: 280, width: '100%' }} />
+            <div ref={mapContainerRef} style={{ height: 200, width: '100%' }} />
 
             {/* Loading overlay */}
             {loading && (
