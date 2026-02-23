@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { serviceApi, addressApi } from '../services/api';
+import { serviceApi, addressApi, inventoryApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2 } from 'lucide-react';
 import AddressMap from '../components/AddressMap';
-
 import { SERVICE_CATEGORIES } from '../../../shared/patientDashboardConfig';
 
 const ALL_SERVICES = SERVICE_CATEGORIES.flatMap(cat => cat.services.map(s => s.label));
@@ -13,7 +12,7 @@ export default function BookVisit() {
     const location = useLocation();
     const preState = (location.state as any) || {};
 
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<any>({
         serviceType: preState.preSelectedService || '',
         symptoms: preState.symptoms || '',
         location: '',
@@ -21,6 +20,8 @@ export default function BookVisit() {
         locationDetails: null as any,
         isImmediate: false,
         addressId: '' as string,
+        hasProvidedMedication: true,
+        selectedVaccineId: '',
     });
     const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
     const [showNewAddress, setShowNewAddress] = useState(false);
@@ -41,11 +42,25 @@ export default function BookVisit() {
     const navigate = useNavigate();
 
     const [instantCare, setInstantCare] = useState({ available: false, message: 'Checking availability...' });
+    const [vaccines, setVaccines] = useState<any[]>([]);
+
+    const needsVaccineSelection = ['Tetanus (TT) Shot', 'Flu Shot', 'Hepatitis A', 'Hepatitis B (3 Doses)', 'HPV Vaccine', 'Rabies Vaccine', 'Rabies Vaccine (Dog Bite)', 'Injection', 'Insulin Injection Help'].includes(form.serviceType);
 
     React.useEffect(() => {
         fetchAddresses();
         checkInstantCare();
+        fetchVaccines();
     }, []);
+
+    const fetchVaccines = async () => {
+        try {
+            const res = await inventoryApi.getItems();
+            // In a real app we might filter by category or tag. For now we use the whole list, or you can filter by name.
+            setVaccines(res.data.filter((item: any) => item.category === 'Injectable'));
+        } catch (err) {
+            console.error('Failed to fetch inventory:', err);
+        }
+    };
 
     const checkInstantCare = async () => {
         try {
@@ -112,6 +127,21 @@ export default function BookVisit() {
         setLoading(true);
         try {
             const payload = { ...form };
+
+            if (needsVaccineSelection && !form.hasProvidedMedication) {
+                if (!form.selectedVaccineId) {
+                    addToast('error', 'Please select the required vaccine/medicine.');
+                    setLoading(false);
+                    return;
+                }
+                const selectedVaccine = vaccines.find(v => v.id === form.selectedVaccineId);
+                if (selectedVaccine) {
+                    payload.requiredMedicationId = selectedVaccine.id;
+                    payload.requiredMedicationName = selectedVaccine.name;
+                    payload.medicationCost = selectedVaccine.salePrice;
+                }
+            }
+
             if (payload.isImmediate) {
                 payload.scheduledTime = new Date().toISOString();
             } else if (!payload.scheduledTime) {
@@ -276,6 +306,61 @@ export default function BookVisit() {
                         />
                     </div>
 
+                    {/* Vaccine / Injection Medication Selection */}
+                    {needsVaccineSelection && (
+                        <div className="form-group" style={{ background: 'var(--bg)', padding: 'var(--space-md)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border)' }}>
+                            <label className="form-label" style={{ marginBottom: 12 }}>Do you have the vaccine/medicine with you?</label>
+                            <div style={{ display: 'flex', gap: 12, marginBottom: form.hasProvidedMedication ? 0 : 16 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => update('hasProvidedMedication', true)}
+                                    style={{
+                                        flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.875rem',
+                                        border: `1.5px solid ${form.hasProvidedMedication ? 'var(--primary)' : 'var(--border)'}`,
+                                        background: form.hasProvidedMedication ? 'var(--primary-bg)' : 'white',
+                                        color: form.hasProvidedMedication ? 'var(--primary)' : 'var(--text)',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Yes, I have it
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => update('hasProvidedMedication', false)}
+                                    style={{
+                                        flex: 1, padding: '10px', borderRadius: 'var(--radius-md)', fontWeight: 600, fontSize: '0.875rem',
+                                        border: `1.5px solid ${!form.hasProvidedMedication ? 'var(--primary)' : 'var(--border)'}`,
+                                        background: !form.hasProvidedMedication ? 'var(--primary-bg)' : 'white',
+                                        color: !form.hasProvidedMedication ? 'var(--primary)' : 'var(--text)',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    No, bring it for me
+                                </button>
+                            </div>
+
+                            {!form.hasProvidedMedication && (
+                                <div style={{ marginTop: 8 }}>
+                                    <label className="form-label" style={{ fontSize: '0.75rem' }}>Select Required Medicine</label>
+                                    <select
+                                        className="form-input bg-white cursor-pointer"
+                                        value={form.selectedVaccineId}
+                                        onChange={e => update('selectedVaccineId', e.target.value)}
+                                        required
+                                    >
+                                        <option value="">-- Choose medicine to add --</option>
+                                        {vaccines.map(v => (
+                                            <option key={v.id} value={v.id}>{v.name} (+₹{v.salePrice})</option>
+                                        ))}
+                                    </select>
+                                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
+                                        The nurse will carry this medication. Cost will be added to your bill.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Address Selection */}
                     <div className="form-group">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -296,7 +381,7 @@ export default function BookVisit() {
                                     <div
                                         key={addr.id}
                                         onClick={() => {
-                                            setForm(prev => ({
+                                            setForm((prev: any) => ({
                                                 ...prev,
                                                 location: addr.address,
                                                 locationDetails: addr,

@@ -421,6 +421,29 @@ export default function NurseCaseView() {
                 <div style={{ marginTop: 'var(--space-md)', padding: 'var(--space-sm) var(--space-md)', background: 'var(--bg)', borderRadius: 'var(--radius-md)', fontSize: '0.813rem' }}>
                     <strong>Symptoms:</strong> {service.symptoms}
                 </div>
+                {service.hasProvidedMedication === false && service.requiredMedicationName && (
+                    <div style={{
+                        marginTop: 'var(--space-md)',
+                        padding: '12px var(--space-md)',
+                        background: 'hsl(45, 100%, 96%)',
+                        border: '1px solid var(--warning)',
+                        borderRadius: 'var(--radius-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 12,
+                        color: 'var(--warning-dark)',
+                        fontWeight: 600,
+                        fontSize: '0.875rem'
+                    }}>
+                        <AlertTriangle size={20} style={{ flexShrink: 0, color: 'var(--warning)' }} />
+                        <div>
+                            ⚠️ Patient does not have the medicine.
+                            <div style={{ color: 'var(--text)', fontSize: '0.75rem', marginTop: 2, fontWeight: 500 }}>
+                                Please carry from inventory: <strong>{service.requiredMedicationName}</strong>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Start Visit / Navigate */}

@@ -52,15 +52,15 @@ enum TriageLevel {
 // ============ MODELS ============
 
 model User {
-  id            String    @id @default(uuid())
-  email         String?   @unique
+  id            String   @id @default(uuid())
+  email         String?  @unique
   passwordHash  String?
   name          String
-  phone         String    @unique
+  phone         String   @unique
   role          Role
-  medicalRegNo  String?   // New field for doctors
-  createdAt     DateTime  @default(now())
-  phoneVerified Boolean   @default(false)
+  medicalRegNo  String? // New field for doctors
+  createdAt     DateTime @default(now())
+  phoneVerified Boolean  @default(false)
   sessionToken  String?
 
   // Profile fields
@@ -104,36 +104,42 @@ model FileUpload {
 }
 
 model ServiceRequest {
-  id            String   @id @default(uuid())
-  patientId     String
-  patient       User     @relation("PatientServices", fields: [patientId], references: [id])
-  symptoms      String
-  
+  id        String @id @default(uuid())
+  patientId String
+  patient   User   @relation("PatientServices", fields: [patientId], references: [id])
+  symptoms  String
+
   // Service Details
   serviceType     String
   serviceCategory String?
-  isImmediate     Boolean   @default(false)
-  
+  isImmediate     Boolean @default(false)
+
   // Location
   location        String
-  locationDetails Json?    // Snapshot
+  locationDetails Json? // Snapshot
   addressId       String?
   savedAddress    SavedAddress? @relation(fields: [addressId], references: [id])
-  
+
   // Timing
   scheduledTime    DateTime
   scheduledEndTime DateTime?
-  
+
   // Assignment
-  nurseId       String?
-  nurse         User?    @relation("NurseServices", fields: [nurseId], references: [id])
-  doctorId      String?
-  doctor        User?    @relation("DoctorRequests", fields: [doctorId], references: [id])
-  
-  status        ServiceStatus   @default(pending_nurse_assignment)
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  nurseId  String?
+  nurse    User?   @relation("NurseServices", fields: [nurseId], references: [id])
+  doctorId String?
+  doctor   User?   @relation("DoctorRequests", fields: [doctorId], references: [id])
+
+  status ServiceStatus @default(pending_nurse_assignment)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Medication / Vaccine details
+  hasProvidedMedication  Boolean?
+  requiredMedicationId   String?
+  requiredMedicationName String?
+  medicationCost         Float?
 
   clinicalReport ClinicalReport?
   doctorAction   DoctorAction?
@@ -145,73 +151,73 @@ model ServiceRequest {
 }
 
 model ClinicalReport {
-  id                  String     @id @default(uuid())
-  serviceId           String     @unique
-  chiefComplaint      String?
-  durationOfSymptoms  String?
-  vitalsJson          Json
-  medicalHistory      String?
-  allergies           String?
-  currentMedications  String?
-  nurseNotes          String
-  nurseObservations   String?
-  attachments         String[]
-  triageLevel         TriageLevel
-  createdAt           DateTime   @default(now())
+  id                 String      @id @default(uuid())
+  serviceId          String      @unique
+  chiefComplaint     String?
+  durationOfSymptoms String?
+  vitalsJson         Json
+  medicalHistory     String?
+  allergies          String?
+  currentMedications String?
+  nurseNotes         String
+  nurseObservations  String?
+  attachments        String[]
+  triageLevel        TriageLevel
+  createdAt          DateTime    @default(now())
 
   service      ServiceRequest @relation(fields: [serviceId], references: [id])
   prescription Prescription?
 }
 
 model DoctorAction {
-  id                  String   @id @default(uuid())
-  serviceId           String   @unique
+  id                  String    @id @default(uuid())
+  serviceId           String    @unique
   diagnosis           String
   clinicalNotes       String?
   advice              String?
   medications         String?
-  medicinesJson       Json?      // Structured medicines array
+  medicinesJson       Json? // Structured medicines array
   prescriptionUrl     String?
-  labRecommended      Boolean  @default(false)
+  labRecommended      Boolean   @default(false)
   referralNote        String?
   followupDate        DateTime?
   followupInstruction String?
-  
+
   // Procedure Approval for restricted services
-  procedureApproved   Boolean  @default(false)
-  approvalNotes       String?
-  requestNurseEdit    Boolean  @default(false)
-  
-  emergencyAction      String?   // hospital_referral, immediate_prescription, continue_care
+  procedureApproved Boolean @default(false)
+  approvalNotes     String?
+  requestNurseEdit  Boolean @default(false)
+
+  emergencyAction String? // hospital_referral, immediate_prescription, continue_care
 
   service ServiceRequest @relation(fields: [serviceId], references: [id])
 }
 
 model Prescription {
-  id                   String   @id @default(uuid())
-  serviceId            String
-  doctorId             String
-  patientId            String
-  clinicalReportId     String   @unique
-  diagnosis            String
-  summaryNotes         String?
-  vitalsSnapshotJson   Json
-  nurseObservations    String?
-  medicinesJson        Json
-  followUpInstruction  String?
-  pdfUrl               String?
-  versionNumber        Int      @default(1)
-  createdAt            DateTime @default(now())
+  id                  String   @id @default(uuid())
+  serviceId           String
+  doctorId            String
+  patientId           String
+  clinicalReportId    String   @unique
+  diagnosis           String
+  summaryNotes        String?
+  vitalsSnapshotJson  Json
+  nurseObservations   String?
+  medicinesJson       Json
+  followUpInstruction String?
+  pdfUrl              String?
+  versionNumber       Int      @default(1)
+  createdAt           DateTime @default(now())
 
   // Snapshot of patient info at creation (from target)
   patientNameSnapshot   String?
   patientGenderSnapshot String?
   patientDobSnapshot    DateTime?
 
-  service        ServiceRequest  @relation(fields: [serviceId], references: [id])
-  doctor         User            @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
-  patient        User            @relation("PatientPrescriptions", fields: [patientId], references: [id])
-  clinicalReport ClinicalReport  @relation(fields: [clinicalReportId], references: [id])
+  service        ServiceRequest        @relation(fields: [serviceId], references: [id])
+  doctor         User                  @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  patient        User                  @relation("PatientPrescriptions", fields: [patientId], references: [id])
+  clinicalReport ClinicalReport        @relation(fields: [clinicalReportId], references: [id])
   versions       PrescriptionVersion[]
 
   @@index([serviceId])
@@ -220,15 +226,15 @@ model Prescription {
 }
 
 model PrescriptionVersion {
-  id                   String   @id @default(uuid())
-  prescriptionId       String
-  versionNumber        Int
-  vitalsSnapshotJson   Json
-  nurseObservations    String?
-  medicinesJson        Json
-  diagnosis            String
-  summaryNotes         String?
-  createdAt            DateTime @default(now())
+  id                 String   @id @default(uuid())
+  prescriptionId     String
+  versionNumber      Int
+  vitalsSnapshotJson Json
+  nurseObservations  String?
+  medicinesJson      Json
+  diagnosis          String
+  summaryNotes       String?
+  createdAt          DateTime @default(now())
 
   prescription Prescription @relation(fields: [prescriptionId], references: [id])
 
@@ -236,18 +242,18 @@ model PrescriptionVersion {
 }
 
 model FollowUpTask {
-  id                  String    @id @default(uuid())
-  serviceId           String
-  patientId           String
-  prescriptionId      String?
-  instruction         String
-  dueDate             DateTime?
-  status              String    @default("pending")  // pending, completed, cancelled
-  completedAt         DateTime?
-  createdAt           DateTime  @default(now())
+  id             String    @id @default(uuid())
+  serviceId      String
+  patientId      String
+  prescriptionId String?
+  instruction    String
+  dueDate        DateTime?
+  status         String    @default("pending") // pending, completed, cancelled
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
 
-  service      ServiceRequest @relation(fields: [serviceId], references: [id])
-  patient      User           @relation("PatientFollowUps", fields: [patientId], references: [id])
+  service ServiceRequest @relation(fields: [serviceId], references: [id])
+  patient User           @relation("PatientFollowUps", fields: [patientId], references: [id])
 
   @@index([serviceId])
   @@index([patientId])
@@ -263,23 +269,23 @@ model LabOrder {
   status         LabOrderStatus @default(pending_patient_confirmation)
   totalPrice     Float?
   collectionTime DateTime?
-  samplePhotos   Json?          // Array of base64/URL strings for tube/container photos
-  barcodes       Json?          // Array of { value, scannedAt } objects
+  samplePhotos   Json? // Array of base64/URL strings for tube/container photos
+  barcodes       Json? // Array of { value, scannedAt } objects
   createdAt      DateTime       @default(now())
 
-  service  ServiceRequest @relation(fields: [serviceId], references: [id])
-  patient  User           @relation("PatientLabOrders", fields: [patientId], references: [id])
-  doctor   User           @relation("DoctorLabOrders", fields: [doctorId], references: [id])
+  service ServiceRequest @relation(fields: [serviceId], references: [id])
+  patient User           @relation("PatientLabOrders", fields: [patientId], references: [id])
+  doctor  User           @relation("DoctorLabOrders", fields: [doctorId], references: [id])
 
   labReport LabReport?
 }
 
 model SavedAddress {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  label        String   // Home, Work, Other
-  
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  label  String // Home, Work, Other
+
   // Structured Address
   flatNumber   String?
   buildingName String?
@@ -288,15 +294,15 @@ model SavedAddress {
   area         String?
   city         String?
   pincode      String?
-  address      String   // Full formatted address string for display
-  
+  address      String // Full formatted address string for display
+
   // Coordinates
-  lat          Float
-  lng          Float
-  
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
+  lat Float
+  lng Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   ServiceRequests ServiceRequest[]
 }
 
@@ -323,21 +329,21 @@ model AuditLog {
 }
 
 model Rating {
-  id               String   @id @default(uuid())
-  serviceId        String
-  service          ServiceRequest @relation(fields: [serviceId], references: [id])
-  
-  fromUserId       String
-  fromUser         User     @relation("RatingsGiven", fields: [fromUserId], references: [id])
-  
-  toUserId         String
-  toUser           User     @relation("RatingsReceived", fields: [toUserId], references: [id])
-  
-  score            Int      // 1-5 stars
-  category         String?  // behavior, guidance, medical_skill etc.
-  comment          String?
-  
-  createdAt        DateTime @default(now())
+  id        String         @id @default(uuid())
+  serviceId String
+  service   ServiceRequest @relation(fields: [serviceId], references: [id])
+
+  fromUserId String
+  fromUser   User   @relation("RatingsGiven", fields: [fromUserId], references: [id])
+
+  toUserId String
+  toUser   User   @relation("RatingsReceived", fields: [toUserId], references: [id])
+
+  score    Int // 1-5 stars
+  category String? // behavior, guidance, medical_skill etc.
+  comment  String?
+
+  createdAt DateTime @default(now())
 
   @@index([serviceId])
   @@index([toUserId])
@@ -353,22 +359,22 @@ model SystemConfig {
 // ════════════════════════════════════════════
 
 model CmsService {
-  id                    String   @id @default(uuid())
-  name                  String
-  description           String?
-  category              String
-  basePrice             Float
-  instantCarePremium    Float    @default(0)
-  emergencyMultiplier   Float    @default(1)
-  followUpPrice         Float    @default(149)
-  estimatedDuration     Int      @default(30)
-  requiresDoctorReview  Boolean  @default(true)
-  requiresVitals        Boolean  @default(true)
-  requiresLabOption     Boolean  @default(false)
-  active                Boolean  @default(true)
-  order                 Int      @default(0)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(uuid())
+  name                 String
+  description          String?
+  category             String
+  basePrice            Float
+  instantCarePremium   Float    @default(0)
+  emergencyMultiplier  Float    @default(1)
+  followUpPrice        Float    @default(149)
+  estimatedDuration    Int      @default(30)
+  requiresDoctorReview Boolean  @default(true)
+  requiresVitals       Boolean  @default(true)
+  requiresLabOption    Boolean  @default(false)
+  active               Boolean  @default(true)
+  order                Int      @default(0)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   pricingRules          DynamicPricingRule[]
   prescriptionTemplates PrescriptionTemplate[]
@@ -417,24 +423,24 @@ model Zone {
 // ════════════════════════════════════════════
 
 model LabTest {
-  id                      String          @id @default(uuid())
+  id                      String  @id @default(uuid())
   name                    String
   description             String?
   category                String
   price                   Float
   preparationInstructions String?
   reportTAT               String?
-  active                  Boolean         @default(true)
-  order                   Int             @default(0)
+  active                  Boolean @default(true)
+  order                   Int     @default(0)
 
   bundles LabBundleTest[]
 }
 
 model LabBundle {
-  id          String          @id @default(uuid())
+  id          String  @id @default(uuid())
   name        String
   bundlePrice Float
-  active      Boolean         @default(true)
+  active      Boolean @default(true)
 
   tests LabBundleTest[]
 }
@@ -516,16 +522,17 @@ model NotificationTemplate {
 // ════════════════════════════════════════════
 
 model InventoryItem {
-  id           String              @id @default(uuid())
+  id           String   @id @default(uuid())
   name         String
-  sku          String?             @unique
+  sku          String?  @unique
+  category     String   @default("General")
   unit         String
-  currentStock Int                 @default(0)
-  reorderLevel Int                 @default(10)
-  costPrice    Float               @default(0)
-  salePrice    Float               @default(0)
-  active       Boolean             @default(true)
-  createdAt    DateTime            @default(now())
+  currentStock Int      @default(0)
+  reorderLevel Int      @default(10)
+  costPrice    Float    @default(0)
+  salePrice    Float    @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
 
   movements   StockMovement[]
   consumables ServiceConsumable[]
