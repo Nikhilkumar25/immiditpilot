@@ -1585,3 +1585,8 @@ button {
   align-items: center;
   gap: 8px;
 }
+
+.grecaptcha-badge {
+  /* hiding badge, added proper attribution in footer */
+  visibility: hidden !important;
+}
