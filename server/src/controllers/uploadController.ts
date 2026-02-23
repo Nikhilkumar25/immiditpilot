@@ -2,7 +2,6 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../index';
 import multer from 'multer';
-import path from 'path';
 import { uploadToGCS, getSignedDownloadUrl, deleteFromGCS } from '../services/storageService';
 
 // Use memory storage — file buffer stays in memory, gets uploaded to GCS
