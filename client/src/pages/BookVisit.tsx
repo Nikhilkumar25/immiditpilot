@@ -96,7 +96,7 @@ export default function BookVisit() {
             });
             setSavedAddresses([res.data, ...savedAddresses]);
             setShowNewAddress(false);
-            setForm(prev => ({
+            setForm((prev: any) => ({
                 ...prev,
                 location: res.data.address,
                 locationDetails: res.data,
