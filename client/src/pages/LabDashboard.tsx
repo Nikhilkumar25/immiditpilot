@@ -223,10 +223,14 @@ export default function LabDashboard() {
                                         </button>
                                     )}
                                     {order.status === 'report_ready' && order.labReport?.reportUrl && (
-                                        <a href={order.labReport.reportUrl} target="_blank" rel="noopener noreferrer"
-                                            className="btn btn-secondary btn-sm">
+                                        <button onClick={async () => {
+                                            try {
+                                                const res = await (await import('../services/api')).labApi.getReportUrl(order.id);
+                                                window.open(res.data.url, '_blank');
+                                            } catch { }
+                                        }} className="btn btn-secondary btn-sm">
                                             <FileText size={14} /> View Report
-                                        </a>
+                                        </button>
                                     )}
                                 </div>
                             </div>

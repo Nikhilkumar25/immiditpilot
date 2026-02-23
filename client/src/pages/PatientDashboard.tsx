@@ -443,14 +443,17 @@ export default function PatientDashboard() {
                                     <div style={{ fontWeight: 600 }}>{(lab.testsJson as any[])?.map((t: any) => t.name).join(', ')}</div>
                                     <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>Ready for your review</div>
                                 </div>
-                                <a
-                                    href={lab.labReport?.reportUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lab.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch { }
+                                    }}
                                     className="btn btn-secondary btn-sm"
                                 >
                                     <FileText size={14} /> View Report
-                                </a>
+                                </button>
                             </div>
                         </div>
                     ))}

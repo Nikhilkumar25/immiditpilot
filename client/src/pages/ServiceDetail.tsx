@@ -389,9 +389,14 @@ export default function ServiceDetail() {
                                 )}
 
                                 {lo.labReport && (
-                                    <a href={lo.labReport.reportUrl} target="_blank" rel="noopener" className="btn btn-secondary btn-sm" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <button onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lo.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch { }
+                                    }} className="btn btn-secondary btn-sm" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <Download size={14} /> View Report
-                                    </a>
+                                    </button>
                                 )}
                             </div>
                         );

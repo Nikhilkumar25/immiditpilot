@@ -1072,9 +1072,14 @@ export default function DoctorCaseView() {
                             {/* Review form for reports */}
                             {lo.labReport && !lo.labReport.doctorReviewNotes && (
                                 <div style={{ marginTop: 8 }}>
-                                    <a href={lo.labReport.reportUrl} target="_blank" rel="noopener" className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }}>
+                                    <button onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lo.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch { }
+                                    }} className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }}>
                                         View Report
-                                    </a>
+                                    </button>
                                     <div className="form-group" style={{ marginTop: 8 }}>
                                         <textarea className="form-textarea" placeholder="Your review notes..."
                                             style={{ minHeight: 60 }}
