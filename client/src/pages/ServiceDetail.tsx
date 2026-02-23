@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { serviceApi, prescriptionApi, labApi } from '../services/api';
+import { serviceApi, prescriptionApi, labApi, uploadApi } from '../services/api';
+import { useSocket } from '../context/SocketContext';
 import CaseTracker from '../components/CaseTracker';
 import { generatePrescriptionPDF } from '../services/prescriptionPdf';
 import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle, Download, Pill, Activity, Check } from 'lucide-react';
@@ -16,18 +17,17 @@ export default function ServiceDetail() {
     const [confirming, setConfirming] = useState(false);
     const [excludedTests, setExcludedTests] = useState<Record<string, Set<string>>>({});
     const { addToast } = useToast();
+    const { socket, joinService, leaveService } = useSocket();
     const navigate = useNavigate();
 
-    const fetchService = () => {
+    const fetchService = useCallback(() => {
         serviceApi.getById(id!)
             .then((res) => setService(res.data))
             .catch(console.error)
             .finally(() => setLoading(false));
-    };
+    }, [id]);
 
-    useEffect(() => {
-        fetchService();
-        // Fetch prescription
+    const fetchPrescription = useCallback(() => {
         prescriptionApi.get(id!)
             .then((res) => {
                 console.log('Prescription fetched:', res.data);
@@ -37,6 +37,50 @@ export default function ServiceDetail() {
                 console.error('Failed to fetch prescription:', err);
             });
     }, [id]);
+
+    useEffect(() => {
+        fetchService();
+        fetchPrescription();
+        // Join the service room for real-time updates
+        if (id) joinService(id);
+        return () => { if (id) leaveService(id); };
+    }, [id, fetchService, fetchPrescription, joinService, leaveService]);
+
+    // ─── Socket listeners for real-time updates ───
+    useEffect(() => {
+        if (!socket) return;
+        const onStatusUpdate = () => fetchService();
+        const onPrescriptionGenerated = () => { fetchService(); fetchPrescription(); };
+        const onReportUploaded = () => fetchService();
+        const onPrescriptionUploaded = () => { fetchPrescription(); };
+
+        socket.on('status_update', onStatusUpdate);
+        socket.on('prescription_generated', onPrescriptionGenerated);
+        socket.on('report_uploaded', onReportUploaded);
+        socket.on('prescription_uploaded', onPrescriptionUploaded);
+        return () => {
+            socket.off('status_update', onStatusUpdate);
+            socket.off('prescription_generated', onPrescriptionGenerated);
+            socket.off('report_uploaded', onReportUploaded);
+            socket.off('prescription_uploaded', onPrescriptionUploaded);
+        };
+    }, [socket, fetchService, fetchPrescription]);
+
+    // ─── Resolve fileId or URL for lab reports ───
+    const resolveUrl = async (urlOrId: string): Promise<string> => {
+        if (!urlOrId) return '';
+        const isFileId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlOrId);
+        if (isFileId) {
+            try {
+                const res = await uploadApi.getFileUrl(urlOrId);
+                return res.data.url;
+            } catch (err) {
+                console.error('Failed to resolve file ID:', urlOrId, err);
+                throw err;
+            }
+        }
+        return urlOrId;
+    };
 
     const handleCancel = async () => {
         if (!confirm('Are you sure you want to cancel this visit?')) return;
@@ -120,19 +164,31 @@ export default function ServiceDetail() {
             </div>
 
             {/* Nurse */}
-            {service.nurse && (
-                <div className="card" style={{ marginTop: 'var(--space-md)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(15,185,177,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
-                            <User size={18} />
-                        </div>
-                        <div>
-                            <div style={{ fontWeight: 600 }}>{service.nurse.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Assigned Nurse · 📞 {service.nurse.phone}</div>
+            {service.nurse && (() => {
+                const completedStatuses = ['completed', 'doctor_completed', 'cancelled'];
+                const isServiceDone = completedStatuses.includes(service.status);
+                return (
+                    <div className="card" style={{ marginTop: 'var(--space-md)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-md)' }}>
+                            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(15,185,177,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary)' }}>
+                                <User size={18} />
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 600 }}>{service.nurse.name}</div>
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                                    Assigned Nurse
+                                    {!isServiceDone && service.nurse.phone && (
+                                        <span> · 📞 {service.nurse.phone}</span>
+                                    )}
+                                    {isServiceDone && (
+                                        <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}> · Service completed</span>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
 
             {/* Clinical Report */}
             {service.clinicalReport && (
@@ -389,10 +445,22 @@ export default function ServiceDetail() {
                                 )}
 
                                 {lo.labReport && (
-                                    <a href={lo.labReport.reportUrl} target="_blank" rel="noopener" className="btn btn-secondary btn-sm" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                                    <button
+                                        onClick={async () => {
+                                            try {
+                                                const url = await resolveUrl(lo.labReport!.reportUrl);
+                                                window.open(url, '_blank');
+                                            } catch {
+                                                addToast('error', 'Failed to load report');
+                                            }
+                                        }}
+                                        className="btn btn-secondary btn-sm"
+                                        style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                                    >
                                         <Download size={14} /> View Report
-                                    </a>
+                                    </button>
                                 )}
+
                             </div>
                         );
                     })}

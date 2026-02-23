@@ -296,13 +296,13 @@ async function generatePrescriptionPDF(params: {
         .header {
             display: flex;
             justify-content: space-between;
-            border-bottom: 3px solid #2a9d8f;
+            border-bottom: 3px solid #F25022;
             padding-bottom: 16px;
             margin-bottom: 24px;
         }
         .header-left h1 {
             font-size: 20px;
-            color: #2a9d8f;
+            color: #F25022;
             margin-bottom: 4px;
         }
         .header-left p {
@@ -316,7 +316,7 @@ async function generatePrescriptionPDF(params: {
         }
 
         .patient-info {
-            background: #f0faf8;
+            background: #FFF5F2;
             padding: 16px;
             border-radius: 8px;
             margin-bottom: 24px;
@@ -325,7 +325,7 @@ async function generatePrescriptionPDF(params: {
             gap: 8px;
         }
         .patient-info p { font-size: 13px; }
-        .patient-info strong { color: #2a9d8f; }
+        .patient-info strong { color: #F25022; }
 
         .section {
             margin-bottom: 20px;
@@ -335,7 +335,7 @@ async function generatePrescriptionPDF(params: {
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            color: #2a9d8f;
+            color: #F25022;
             border-bottom: 1px solid #e0e0e0;
             padding-bottom: 6px;
             margin-bottom: 10px;
@@ -362,7 +362,7 @@ async function generatePrescriptionPDF(params: {
             border-collapse: collapse;
         }
         table.medicines th {
-            background: #2a9d8f;
+            background: #F25022;
             color: white;
             padding: 8px 10px;
             font-size: 11px;
@@ -379,10 +379,29 @@ async function generatePrescriptionPDF(params: {
             background: #f9f9f9;
         }
 
+        .advice-box {
+            background: #FFFBEB;
+            border: 1px solid #FDE68A;
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+        .advice-box h4 {
+            color: #B45309;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+        }
+        .advice-box p {
+            font-size: 13px;
+            color: #78350F;
+        }
+
         .footer {
             margin-top: 40px;
             padding-top: 16px;
-            border-top: 2px solid #2a9d8f;
+            border-top: 2px solid #F25022;
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -392,19 +411,29 @@ async function generatePrescriptionPDF(params: {
         .footer-right .signature {
             font-weight: 700;
             font-size: 14px;
-            color: #2a9d8f;
+            color: #F25022;
             border-top: 1px solid #333;
             padding-top: 4px;
         }
 
         .version-badge {
             display: inline-block;
-            background: #2a9d8f;
+            background: #F25022;
             color: white;
             font-size: 10px;
             padding: 2px 8px;
             border-radius: 4px;
             font-weight: 600;
+        }
+
+        .disclaimer {
+            margin-top: 16px;
+            padding: 10px 14px;
+            background: #F3F4F6;
+            border-radius: 6px;
+            font-size: 10px;
+            color: #6B7280;
+            line-height: 1.5;
         }
     </style>
 </head>
@@ -413,7 +442,7 @@ async function generatePrescriptionPDF(params: {
     <div class="header">
         <div class="header-left">
             <h1>Dr. ${doctor.name}</h1>
-            <p>Registration: IMMIDIT-DOC-${doctor.id.substring(0, 8).toUpperCase()}</p>
+            <p>Registration: ${doctor.medicalRegNo || 'IMMIDIT-DOC-' + doctor.id.substring(0, 8).toUpperCase()}</p>
             <p>Immidit Medical Coordination</p>
         </div>
         <div class="header-right">
@@ -429,6 +458,8 @@ async function generatePrescriptionPDF(params: {
         <p><strong>Patient ID:</strong> ${patient.id.substring(0, 8).toUpperCase()}</p>
         <p><strong>Mobile:</strong> ${patient.phone}</p>
         <p><strong>Service:</strong> ${service.serviceType}</p>
+        ${patient.gender ? `<p><strong>Gender:</strong> ${patient.gender}</p>` : ''}
+        ${patient.dateOfBirth ? `<p><strong>DOB:</strong> ${new Date(patient.dateOfBirth).toLocaleDateString('en-IN')}</p>` : ''}
     </div>
 
     <!-- SECTION 1: CHIEF COMPLAINT -->
@@ -481,11 +512,31 @@ async function generatePrescriptionPDF(params: {
         </table>
     </div>
 
-    <!-- SECTION 7: ADDITIONAL NOTES -->
+    <!-- SECTION 7: DOCTOR ADVICE -->
+    ${(service.doctorAction?.advice || service.doctorAction?.medications) ? `
+    <div class="section">
+        <h3>SECTION 7 — DOCTOR'S ADVICE</h3>
+        ${service.doctorAction.advice ? `
+        <div class="advice-box">
+            <h4>General Advice</h4>
+            <p>${service.doctorAction.advice.replace(/\n/g, '<br/>')}</p>
+        </div>
+        ` : ''}
+        ${service.doctorAction.medications ? `
+        <div class="advice-box">
+            <h4>Additional Medications / OTC</h4>
+            <p>${service.doctorAction.medications.replace(/\n/g, '<br/>')}</p>
+        </div>
+        ` : ''}
+    </div>
+    ` : ''}
+
+    <!-- SECTION 8: FOLLOW-UP -->
     ${followUpInstruction ? `
     <div class="section">
-        <h3>SECTION 7 — FOLLOW-UP & NOTES</h3>
+        <h3>SECTION 8 — FOLLOW-UP & NOTES</h3>
         <p><strong>Follow-up:</strong> ${followUpInstruction}</p>
+        ${service.doctorAction?.followupDate ? `<p><strong>Next Visit By:</strong> ${new Date(service.doctorAction.followupDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>` : ''}
     </div>
     ` : ''}
 
@@ -495,18 +546,23 @@ async function generatePrescriptionPDF(params: {
             <p>Case ID: ${service.id.substring(0, 8).toUpperCase()}</p>
             <p>Patient ID: ${patient.id.substring(0, 8).toUpperCase()}</p>
             <p>Generated: ${timestamp}</p>
-            <p style="margin-top: 8px; font-style: italic;">
-                This prescription was generated through structured clinical coordination via Immidit.
-            </p>
         </div>
         <div class="footer-right">
             <div class="signature">Dr. ${doctor.name}</div>
-            <p style="font-size: 11px; color: #555;">Reg: IMMIDIT-DOC-${doctor.id.substring(0, 8).toUpperCase()}</p>
+            <p style="font-size: 11px; color: #555;">Reg: ${doctor.medicalRegNo || 'IMMIDIT-DOC-' + doctor.id.substring(0, 8).toUpperCase()}</p>
             <p style="font-size: 11px; color: #555;">${timestamp}</p>
         </div>
     </div>
+
+    <div class="disclaimer">
+        This is a computer-generated prescription via Immidit Medical Coordination Platform.
+        No physical signature is required. The prescription was generated based on a structured
+        clinical assessment — including nurse-recorded vitals and telemedicine doctor consultation.
+        For emergencies, please contact your nearest hospital.
+    </div>
 </body>
 </html>`;
+
 
     // Save HTML file as the "PDF" (later can use puppeteer for real PDF)
     const uploadsDir = path.join(__dirname, '../../uploads/prescriptions');

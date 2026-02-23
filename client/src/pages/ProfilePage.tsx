@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { profileApi } from '../services/api';
+import { profileApi, uploadApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import {
     User, Phone, Calendar, Heart, Droplets, AlertCircle,
-    LogOut, Save, Loader2, ChevronLeft
+    LogOut, Save, Loader2, ChevronLeft, FileText, Upload, CheckCircle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,11 +24,40 @@ export default function ProfilePage() {
         gender: '',
         bloodGroup: '',
         emergencyContact: '',
+        medicalRegNo: '',
+        medicalHistory: '',
+        allergicInfo: '',
+        degreeProofUrl: '',
+        registrationProofUrl: '',
     });
 
     useEffect(() => {
         fetchProfile();
     }, []);
+
+    const resolveUrl = async (urlOrId: string): Promise<string> => {
+        if (!urlOrId) return '';
+        const isFileId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlOrId);
+        if (isFileId) {
+            try {
+                const res = await uploadApi.getFileUrl(urlOrId);
+                return res.data.url;
+            } catch (err) {
+                console.error('Failed to resolve file ID:', urlOrId, err);
+                throw err;
+            }
+        }
+        return urlOrId;
+    };
+
+    const handleViewProof = async (urlOrId: string) => {
+        try {
+            const url = await resolveUrl(urlOrId);
+            window.open(url, '_blank');
+        } catch {
+            addToast('error', 'Failed to load document');
+        }
+    };
 
     const fetchProfile = async () => {
         try {
@@ -41,6 +70,11 @@ export default function ProfilePage() {
                 gender: u.gender || '',
                 bloodGroup: u.bloodGroup || '',
                 emergencyContact: u.emergencyContact || '',
+                medicalRegNo: u.medicalRegNo || '',
+                medicalHistory: u.medicalHistory || '',
+                allergicInfo: u.allergicInfo || '',
+                degreeProofUrl: u.degreeProofUrl || '',
+                registrationProofUrl: u.registrationProofUrl || '',
             });
         } catch (err) {
             console.error('Failed to fetch profile', err);
@@ -62,7 +96,13 @@ export default function ProfilePage() {
                 gender: form.gender || undefined,
                 bloodGroup: form.bloodGroup || undefined,
                 emergencyContact: form.emergencyContact || undefined,
+                medicalRegNo: form.medicalRegNo || undefined,
+                medicalHistory: form.medicalHistory || undefined,
+                allergicInfo: form.allergicInfo || undefined,
+                degreeProofUrl: form.degreeProofUrl || undefined,
+                registrationProofUrl: form.registrationProofUrl || undefined,
             });
+
             // Update local auth state
             const updatedUser = res.data.user;
             setUser({ ...user!, ...updatedUser });
@@ -212,6 +252,157 @@ export default function ProfilePage() {
                             />
                         </div>
                     </div>
+                    <div style={{ height: 1, background: 'var(--border)', margin: 'var(--space-sm) 0' }} />
+
+                    {/* Medical Background */}
+                    <div>
+                        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Heart size={14} /> Medical Background
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                            <div className="form-group">
+                                <label className="form-label">Medical History</label>
+                                <textarea
+                                    className="form-input"
+                                    rows={3}
+                                    placeholder="Briefly describe any chronic conditions, surgeries, etc."
+                                    value={form.medicalHistory}
+                                    onChange={e => setForm({ ...form, medicalHistory: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Allergic Information</label>
+                                <textarea
+                                    className="form-input"
+                                    rows={2}
+                                    placeholder="List any known allergies (medications, food, etc.)"
+                                    value={form.allergicInfo}
+                                    onChange={e => setForm({ ...form, allergicInfo: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Professional Credentials (for Doctors/Nurses) */}
+                    {(user?.role === 'doctor' || user?.role === 'nurse') && (
+                        <div style={{ marginTop: 'var(--space-md)' }}>
+                            <div style={{ height: 1, background: 'var(--border)', margin: 'var(--space-sm) 0' }} />
+                            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <FileText size={14} /> Professional Credentials
+                            </h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
+                                <div className="form-group">
+                                    <label className="form-label">Medical Registration Number</label>
+                                    <input
+                                        className="form-input"
+                                        type="text"
+                                        placeholder="Reg No. (e.g. MCI-12345)"
+                                        value={form.medicalRegNo}
+                                        onChange={e => setForm({ ...form, medicalRegNo: e.target.value })}
+                                    />
+                                </div>
+
+                                {/* File Uploads */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-md)' }}>
+                                    <div className="form-group">
+                                        <label className="form-label">Degree Certificate</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                type="file"
+                                                id="degree-upload"
+                                                style={{ display: 'none' }}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    try {
+                                                        addToast('info', 'Uploading degree...');
+                                                        const res = await uploadApi.uploadFile(file);
+                                                        setForm({ ...form, degreeProofUrl: res.data.fileId });
+                                                        addToast('success', 'Degree uploaded!');
+                                                    } catch (err) {
+                                                        addToast('error', 'Upload failed');
+                                                    }
+                                                }}
+                                            />
+                                            <label htmlFor="degree-upload" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', border: '1px dashed var(--border)', height: 'auto', padding: 'var(--space-md) 0' }}>
+                                                {form.degreeProofUrl ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                                        <CheckCircle size={20} color="var(--primary)" />
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Certificate Added</span>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-ghost btn-xs"
+                                                            style={{ color: 'var(--primary)', textDecoration: 'underline', padding: 0 }}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleViewProof(form.degreeProofUrl);
+                                                            }}
+                                                        >
+                                                            View Document
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                                        <Upload size={20} />
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Upload Degree</span>
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div className="form-group">
+                                        <label className="form-label">Registration Proof</label>
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                type="file"
+                                                id="reg-upload"
+                                                style={{ display: 'none' }}
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    try {
+                                                        addToast('info', 'Uploading registration proof...');
+                                                        const res = await uploadApi.uploadFile(file);
+                                                        setForm({ ...form, registrationProofUrl: res.data.fileId });
+                                                        addToast('success', 'Registration proof added!');
+                                                    } catch (err) {
+                                                        addToast('error', 'Upload failed');
+                                                    }
+                                                }}
+                                            />
+                                            <label htmlFor="reg-upload" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center', border: '1px dashed var(--border)', height: 'auto', padding: 'var(--space-md) 0' }}>
+                                                {form.registrationProofUrl ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                                                        <CheckCircle size={20} color="var(--primary)" />
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Proof Added</span>
+                                                        <button
+                                                            type="button"
+                                                            className="btn btn-ghost btn-xs"
+                                                            style={{ color: 'var(--primary)', textDecoration: 'underline', padding: 0 }}
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                handleViewProof(form.registrationProofUrl);
+                                                            }}
+                                                        >
+                                                            View Document
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                                        <Upload size={20} />
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Upload Proof</span>
+                                                    </div>
+                                                )}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Save Button */}
                     <button

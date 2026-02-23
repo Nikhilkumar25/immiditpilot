@@ -59,6 +59,8 @@ model User {
   phone         String   @unique
   role          Role
   medicalRegNo  String? // New field for doctors
+  degreeProofUrl      String?
+  registrationProofUrl String?
   createdAt     DateTime @default(now())
   phoneVerified Boolean  @default(false)
   sessionToken  String?

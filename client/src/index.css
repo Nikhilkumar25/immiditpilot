@@ -1585,3 +1585,168 @@ button {
   align-items: center;
   gap: 8px;
 }
+
+/* ============ MOBILE RESPONSIVE OVERRIDES ============ */
+
+@media (max-width: 768px) {
+
+  /* Cards — tighter padding on mobile */
+  .card {
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+  }
+
+  .card-glass {
+    padding: var(--space-md);
+  }
+
+  /* Page titles — smaller */
+  .page-title {
+    font-size: 1.25rem;
+    letter-spacing: -0.3px;
+  }
+
+  .page-subtitle {
+    font-size: 0.813rem;
+  }
+
+  /* Buttons — full-width on mobile, bigger touch target */
+  .btn {
+    min-height: 44px;
+    font-size: 0.813rem;
+    padding: 0 var(--space-md);
+  }
+
+  .btn-sm {
+    min-height: 40px;
+    padding: 0 var(--space-sm);
+    font-size: 0.75rem;
+  }
+
+  .btn-lg {
+    min-height: 48px;
+    font-size: 0.938rem;
+  }
+
+  .btn-block-mobile {
+    width: 100% !important;
+  }
+
+  /* Tabs — scroll horizontally */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 1px;
+    flex-wrap: nowrap;
+  }
+
+  .tab {
+    padding: var(--space-sm) 12px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    min-height: 38px;
+  }
+
+  /* KPI grid — 2 columns on mobile */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
+  }
+
+  .kpi-card {
+    padding: var(--space-md);
+  }
+
+  .kpi-value {
+    font-size: 1.5rem;
+  }
+
+  .kpi-label {
+    font-size: 0.688rem;
+  }
+
+  /* Badge — slightly smaller */
+  .badge {
+    font-size: 0.688rem;
+    padding: 2px 8px;
+  }
+
+  /* Vitals grid — 2 columns on mobile */
+  .vitals-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--space-sm) !important;
+  }
+
+  .vital-card {
+    padding: var(--space-sm) !important;
+  }
+
+  .vital-value {
+    font-size: 1rem !important;
+  }
+
+  .vital-label {
+    font-size: 0.688rem !important;
+  }
+
+  /* Form inputs — full width */
+  .form-input,
+  .form-textarea,
+  .form-select {
+    min-height: 44px;
+    font-size: 1rem;
+    /* Prevent iOS zoom */
+  }
+
+  /* Toast — smaller on mobile */
+  .toast-container {
+    top: var(--space-sm);
+    right: var(--space-sm);
+    left: var(--space-sm);
+  }
+
+  .toast {
+    min-width: auto;
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    font-size: 0.813rem;
+  }
+
+  /* Page header — compact */
+  .page-header {
+    margin-bottom: var(--space-md);
+    flex-direction: column !important;
+    gap: var(--space-sm);
+  }
+
+  /* Complexity selector — bigger touch targets */
+  .complexity-option {
+    padding: 12px 14px;
+    min-height: 48px;
+  }
+
+  /* Section label — smaller */
+  .section-label {
+    font-size: 0.875rem;
+  }
+}
+
+/* Extra small screens (< 400px) */
+@media (max-width: 400px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vitals-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .btn {
+    font-size: 0.75rem;
+    min-height: 42px;
+  }
+}

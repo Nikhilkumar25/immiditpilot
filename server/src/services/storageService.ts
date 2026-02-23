@@ -25,9 +25,14 @@ function getGCSBucket() {
         const { Storage } = require('@google-cloud/storage');
         const storage = new Storage();
         gcsBucket = storage.bucket(process.env.GCS_BUCKET_NAME!);
+        console.log(`✅ GCS initialized successfully with bucket: ${process.env.GCS_BUCKET_NAME}`);
         return gcsBucket;
-    } catch (err) {
-        console.error('Failed to initialize GCS:', err);
+    } catch (err: any) {
+        console.error('❌ Failed to initialize GCS. Falling back to local/disabled state.', {
+            error: err.message,
+            bucket: process.env.GCS_BUCKET_NAME,
+            hasCredentials: !!process.env.GOOGLE_APPLICATION_CREDENTIALS
+        });
         return null;
     }
 }

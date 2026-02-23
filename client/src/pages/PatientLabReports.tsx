@@ -48,13 +48,21 @@ export default function PatientLabReports() {
         return () => { socket.off('report_uploaded'); socket.off('lab_order_created'); socket.off('status_update'); };
     }, [socket, fetchOrders, addToast]);
 
-    const resolveUrl = async (reportUrl: string): Promise<string> => {
-        const isFileId = /^[0-9a-f-]{36}$/i.test(reportUrl);
+    const resolveUrl = async (urlOrId: string): Promise<string> => {
+        if (!urlOrId) return '';
+        // UUID detection: 8-4-4-4-12 hex characters
+        const isFileId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlOrId);
+
         if (isFileId) {
-            const res = await uploadApi.getFileUrl(reportUrl);
-            return res.data.url;
+            try {
+                const res = await uploadApi.getFileUrl(urlOrId);
+                return res.data.url;
+            } catch (err) {
+                console.error('Failed to resolve file ID:', urlOrId, err);
+                throw err;
+            }
         }
-        return reportUrl;
+        return urlOrId;
     };
 
     const openReport = async (reportUrl: string) => {

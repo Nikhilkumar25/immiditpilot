@@ -133,7 +133,9 @@ export const profileApi = {
     update: (data: {
         name?: string; dateOfBirth?: string; gender?: string;
         bloodGroup?: string; emergencyContact?: string;
-        medicalRegNo?: string;
+        medicalRegNo?: string; medicalHistory?: string;
+        allergicInfo?: string; degreeProofUrl?: string;
+        registrationProofUrl?: string;
     }) => api.patch('/profile', data),
 };
 

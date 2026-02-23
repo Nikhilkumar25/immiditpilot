@@ -19,7 +19,8 @@ export async function getProfile(req: AuthRequest, res: Response): Promise<void>
                 id: true, email: true, name: true, phone: true,
                 role: true, createdAt: true, dateOfBirth: true,
                 gender: true, bloodGroup: true, emergencyContact: true,
-                medicalRegNo: true,
+                allergicInfo: true, medicalHistory: true, medicalRegNo: true,
+                degreeProofUrl: true, registrationProofUrl: true,
             },
         });
 
@@ -46,7 +47,11 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
             return;
         }
 
-        const { name, dateOfBirth, gender, bloodGroup, emergencyContact, medicalRegNo } = req.body;
+        const {
+            name, dateOfBirth, gender, bloodGroup, emergencyContact,
+            medicalRegNo, medicalHistory, allergicInfo,
+            degreeProofUrl, registrationProofUrl
+        } = req.body;
 
         const updateData: any = {};
         if (name !== undefined) updateData.name = name;
@@ -55,6 +60,10 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
         if (bloodGroup !== undefined) updateData.bloodGroup = bloodGroup || null;
         if (emergencyContact !== undefined) updateData.emergencyContact = emergencyContact || null;
         if (medicalRegNo !== undefined) updateData.medicalRegNo = medicalRegNo || null;
+        if (medicalHistory !== undefined) updateData.medicalHistory = medicalHistory || null;
+        if (allergicInfo !== undefined) updateData.allergicInfo = allergicInfo || null;
+        if (degreeProofUrl !== undefined) updateData.degreeProofUrl = degreeProofUrl || null;
+        if (registrationProofUrl !== undefined) updateData.registrationProofUrl = registrationProofUrl || null;
 
         const user = await prisma.user.update({
             where: { id: req.user.id },
@@ -63,7 +72,8 @@ export async function updateProfile(req: AuthRequest, res: Response): Promise<vo
                 id: true, email: true, name: true, phone: true,
                 role: true, createdAt: true, dateOfBirth: true,
                 gender: true, bloodGroup: true, emergencyContact: true,
-                medicalRegNo: true,
+                medicalRegNo: true, medicalHistory: true, allergicInfo: true,
+                degreeProofUrl: true, registrationProofUrl: true,
             },
         });
 

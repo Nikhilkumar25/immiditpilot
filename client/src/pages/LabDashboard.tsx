@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import api from '../services/api';
+import api, { uploadApi } from '../services/api';
 import {
     CheckCircle2,
     Clock,
@@ -89,7 +89,8 @@ export default function LabDashboard() {
                 const uploadRes = await api.post('/upload', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
-                finalUrl = uploadRes.data.url;
+                // Store the fileId instead of the temporary signed URL
+                finalUrl = uploadRes.data.fileId;
             }
             await api.post(`/lab/order/${selectedOrder.id}/report`, { reportUrl: finalUrl });
             addToast('success', 'Report uploaded successfully');
@@ -223,10 +224,22 @@ export default function LabDashboard() {
                                         </button>
                                     )}
                                     {order.status === 'report_ready' && order.labReport?.reportUrl && (
-                                        <a href={order.labReport.reportUrl} target="_blank" rel="noopener noreferrer"
-                                            className="btn btn-secondary btn-sm">
+                                        <button
+                                            onClick={async () => {
+                                                try {
+                                                    const urlOrId = order.labReport!.reportUrl;
+                                                    const isFileId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlOrId);
+                                                    const url = isFileId ? (await uploadApi.getFileUrl(urlOrId)).data.url : urlOrId;
+                                                    window.open(url, '_blank');
+                                                } catch (err) {
+                                                    console.error('Failed to open report:', err);
+                                                    addToast('error', 'Failed to load report');
+                                                }
+                                            }}
+                                            className="btn btn-secondary btn-sm"
+                                        >
                                             <FileText size={14} /> View Report
-                                        </a>
+                                        </button>
                                     )}
                                 </div>
                             </div>
