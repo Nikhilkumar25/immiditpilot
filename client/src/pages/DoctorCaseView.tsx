@@ -1040,14 +1040,14 @@ export default function DoctorCaseView() {
                             disabled={generatingPdf}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         >
-                            {generatingPdf ? <div className="spinner" /> : <><FileText size={14} /> Update Prescription</>}
+                            {/* {generatingPdf ? <div className="spinner" /> : <><FileText size={14} /> Update Prescription</>} */}
                         </button>
                     </div>
-                    {prescription.versions && prescription.versions.length > 0 && (
+                    {/* {prescription.versions && prescription.versions.length > 0 && (
                         <div style={{ marginTop: 'var(--space-md)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             Previous versions: {prescription.versions.length}
                         </div>
-                    )}
+                    )} */}
                 </div>
             )}
 
