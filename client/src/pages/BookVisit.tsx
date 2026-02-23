@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { serviceApi, addressApi, inventoryApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import AddressMap from '../components/AddressMap';
 import { SERVICE_CATEGORIES } from '../../../shared/patientDashboardConfig';
 
@@ -449,11 +449,11 @@ export default function BookVisit() {
 
                         {instantCare.available ? (
                             <div style={{ fontSize: '0.75rem', color: form.isImmediate ? 'var(--primary)' : 'var(--text-secondary)' }}>
-                                <p style={{ fontWeight: 600 }}>⚡ {instantCare.message}</p>
+                                <p style={{ fontWeight: 600 }}><Zap size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {instantCare.message}</p>
                             </div>
                         ) : (
                             <div style={{ fontSize: '0.75rem', color: 'var(--critical)', fontWeight: 500 }}>
-                                <p>⚠️ {instantCare.message}</p>
+                                <p><AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {instantCare.message}</p>
                             </div>
                         )}
 

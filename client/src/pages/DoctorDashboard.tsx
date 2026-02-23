@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { serviceApi, labApi } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { Clock, User, ChevronRight, FlaskConical, Inbox, AlertTriangle, Stethoscope } from 'lucide-react';
+import { Clock, User, ChevronRight, FlaskConical, Inbox, AlertTriangle, Stethoscope, Zap } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const TRIAGE_COLORS: Record<string, string> = {
@@ -103,7 +103,7 @@ export default function DoctorDashboard() {
                                                 <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
                                                     {c.patient?.name}
                                                     <span className={`badge badge-${triage}`}>{triage}</span>
-                                                    {c.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
+                                                    {c.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}><Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> IMMEDIATE</span>}
                                                 </div>
                                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                                                     {c.serviceCategory || 'Service'} · {c.serviceType}

@@ -31,7 +31,7 @@ export interface ServiceOption {
 export interface ServiceCategory {
     id: string;
     title: string;
-    emoji: string;
+    icon: string;
     color: string;       // pastel hex for left border / background
     colorLight: string;  // very light tint for expanded background
     services: ServiceOption[];
@@ -39,7 +39,7 @@ export interface ServiceCategory {
 
 export interface QuickAction {
     id: string;
-    emoji: string;
+    icon: string;
     label: string;
     categoryId: string;
     serviceId: string;
@@ -66,17 +66,17 @@ export interface PriceBreakdown {
 // ---------- Quick Actions ----------
 
 export const QUICK_ACTIONS: QuickAction[] = [
-    { id: 'qa-fever', emoji: '🤒', label: 'Fever Check', categoryId: 'fever-infection', serviceId: 'high-fever' },
-    { id: 'qa-sugar', emoji: '🩸', label: 'Sugar Test', categoryId: 'diabetes-bp', serviceId: 'sugar-test' },
-    { id: 'qa-vaccine', emoji: '💉', label: 'Vaccine', categoryId: 'vaccinations', serviceId: 'flu-shot' },
-    { id: 'qa-elder', emoji: '👵', label: 'Elder Care', categoryId: 'elder-support', serviceId: 'monthly-elder' },
-    { id: 'qa-blood', emoji: '🧪', label: 'Blood Test', categoryId: 'lab-checkups', serviceId: 'cbc' },
-    { id: 'qa-injection', emoji: '💊', label: 'Injection', categoryId: 'fever-infection', serviceId: 'tt-shot' },
-    { id: 'qa-drip', emoji: '💧', label: 'IV Drip', categoryId: 'fever-infection', serviceId: 'high-fever' },
-    { id: 'qa-dressing', emoji: '🩹', label: 'Dressing', categoryId: 'elder-support', serviceId: 'bedridden-care' },
-    { id: 'qa-urgent', emoji: '🚑', label: 'Urgent Visit', categoryId: 'fever-infection', serviceId: 'high-fever' },
-    { id: 'qa-checkup', emoji: '📊', label: 'Full Checkup', categoryId: 'lab-checkups', serviceId: 'full-body' },
-    { id: 'qa-dogbite', emoji: '🐶', label: 'Dog Bite', categoryId: 'fever-infection', serviceId: 'rabies-vaccine' },
+    { id: 'qa-fever', icon: 'Thermometer', label: 'Fever Check', categoryId: 'fever-infection', serviceId: 'high-fever' },
+    { id: 'qa-sugar', icon: 'Droplets', label: 'Sugar Test', categoryId: 'diabetes-bp', serviceId: 'sugar-test' },
+    { id: 'qa-vaccine', icon: 'Syringe', label: 'Vaccine', categoryId: 'vaccinations', serviceId: 'flu-shot' },
+    { id: 'qa-elder', icon: 'HeartHandshake', label: 'Elder Care', categoryId: 'elder-support', serviceId: 'monthly-elder' },
+    { id: 'qa-blood', icon: 'FlaskConical', label: 'Blood Test', categoryId: 'lab-checkups', serviceId: 'cbc' },
+    { id: 'qa-injection', icon: 'Pill', label: 'Injection', categoryId: 'fever-infection', serviceId: 'tt-shot' },
+    { id: 'qa-drip', icon: 'Droplet', label: 'IV Drip', categoryId: 'fever-infection', serviceId: 'high-fever' },
+    { id: 'qa-dressing', icon: 'Bandage', label: 'Dressing', categoryId: 'elder-support', serviceId: 'bedridden-care' },
+    { id: 'qa-urgent', icon: 'Ambulance', label: 'Urgent Visit', categoryId: 'fever-infection', serviceId: 'high-fever' },
+    { id: 'qa-checkup', icon: 'BarChart3', label: 'Full Checkup', categoryId: 'lab-checkups', serviceId: 'full-body' },
+    { id: 'qa-dogbite', icon: 'Dog', label: 'Dog Bite', categoryId: 'fever-infection', serviceId: 'rabies-vaccine' },
 ];
 
 // ---------- Service Categories ----------
@@ -85,7 +85,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'fever-infection',
         title: 'Fever & Infection Care',
-        emoji: '🩺',
+        icon: 'Stethoscope',
         color: '#FF6B6B',
         colorLight: '#FFF0F0',
         services: [
@@ -100,7 +100,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'diabetes-bp',
         title: 'Diabetes & BP Care',
-        emoji: '🩸',
+        icon: 'Droplets',
         color: '#20B2AA',
         colorLight: '#E8FAF8',
         services: [
@@ -114,7 +114,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'thyroid-hormone',
         title: 'Thyroid & Hormone Tests',
-        emoji: '🧬',
+        icon: 'Dna',
         color: '#9B59B6',
         colorLight: '#F5EEFA',
         services: [
@@ -126,7 +126,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'vaccinations',
         title: 'Vaccinations',
-        emoji: '💉',
+        icon: 'Syringe',
         color: '#3498DB',
         colorLight: '#EBF5FB',
         services: [
@@ -141,7 +141,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'elder-support',
         title: 'Elder & Home Support',
-        emoji: '👵',
+        icon: 'HeartHandshake',
         color: '#E91E8C',
         colorLight: '#FDE8F4',
         services: [
@@ -161,7 +161,7 @@ export const SERVICE_CATEGORIES: ServiceCategory[] = [
     {
         id: 'lab-checkups',
         title: 'Lab & Health Checkups',
-        emoji: '🧪',
+        icon: 'FlaskConical',
         color: '#7F8C8D',
         colorLight: '#F2F4F4',
         services: [
@@ -255,10 +255,10 @@ export function calculatePrice(
 // ---------- Trust Elements ----------
 
 export const TRUST_ELEMENTS = [
-    { emoji: '⚡', label: 'Nurse in 15 mins' },
-    { emoji: '📋', label: 'Lab reports < 2 hrs' },
-    { emoji: '💰', label: 'Transparent Pricing' },
-    { emoji: '🏥', label: 'From ₹499' },
+    { icon: 'Zap', label: 'Nurse in 15 mins' },
+    { icon: 'ClipboardList', label: 'Lab reports < 2 hrs' },
+    { icon: 'IndianRupee', label: 'Transparent Pricing' },
+    { icon: 'Hospital', label: 'From ₹499' },
 ];
 
 // ---------- Helpers ----------

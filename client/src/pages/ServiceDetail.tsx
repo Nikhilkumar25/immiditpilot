@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { serviceApi, prescriptionApi, labApi } from '../services/api';
 import CaseTracker from '../components/CaseTracker';
 import { generatePrescriptionPDF } from '../services/prescriptionPdf';
-import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle, Download, Pill, Activity, Check } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle, Download, Pill, Activity, Check, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '../context/ToastContext';
 
@@ -128,7 +128,7 @@ export default function ServiceDetail() {
                         </div>
                         <div>
                             <div style={{ fontWeight: 600 }}>{service.nurse.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Assigned Nurse · 📞 {service.nurse.phone}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Assigned Nurse · <Phone size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {service.nurse.phone}</div>
                         </div>
                     </div>
                 </div>
