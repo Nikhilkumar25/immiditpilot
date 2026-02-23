@@ -44,7 +44,7 @@ export default function AdminFollowUps() {
                             <td style={td}><code style={{ background: '#F0F1F3', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{p.triggerCondition}</code></td>
                             <td style={td}><strong>{p.followUpDays}</strong> days</td>
                             <td style={td}>{p.followUpType.replace('_', ' ')}</td>
-                            <td style={td}>{p.mandatory ? '⚠️ Yes' : 'No'}</td>
+                            <td style={td}>{p.mandatory ? 'Yes' : 'No'}</td>
                             <td style={td}><span style={{ color: p.active ? 'green' : 'red' }}>{p.active ? 'Yes' : 'No'}</span></td>
                             <td style={td}>
                                 <button onClick={() => { setEditing({ ...p }); setShowForm(true); }} style={iconBtn}><Pencil size={14} /></button>

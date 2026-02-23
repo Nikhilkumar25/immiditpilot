@@ -12,6 +12,7 @@ import {
     getDoctorLabReviews,
     getLabQueue,
     confirmSampleReceipt,
+    getLabReportUrl,
 } from '../controllers/labController';
 
 const router = Router();
@@ -31,7 +32,7 @@ router.patch('/order/:id/confirm', authorize('patient'), confirmLabOrder);
 router.get('/orders/patient/:patientId', authorize('patient'), getPatientLabOrders);
 
 // Nurse & Lab
-router.get('/orders/nurse', authorize('nurse', 'lab'), getNurseLabTasks); // Shared task list? Or specific? nurse gets assigned ones. lab gets everything?
+router.get('/orders/nurse', authorize('nurse', 'lab'), getNurseLabTasks);
 router.patch('/order/:id/collect', authorize('nurse', 'lab'), collectSample);
 
 // Lab
@@ -39,7 +40,11 @@ router.get('/queue', authorize('lab'), getLabQueue);
 router.post('/order/:id/report', authorize('admin', 'lab'), uploadLabReport);
 router.patch('/order/:id/receive', authorize('lab'), confirmSampleReceipt);
 
+// Report URL — any authorized participant can get a signed URL
+router.get('/order/:id/report/url', authorize('patient', 'doctor', 'lab', 'admin'), getLabReportUrl);
+
 // Admin
-router.post('/order/:id/report/admin', authorize('admin'), uploadLabReport); // Kept for admin specific URL if needed, or just share above.
+router.post('/order/:id/report/admin', authorize('admin'), uploadLabReport);
 
 export default router;
+

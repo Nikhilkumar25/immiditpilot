@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { serviceApi, addressApi, inventoryApi } from '../services/api';
 import { useToast } from '../context/ToastContext';
-import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2 } from 'lucide-react';
+import { Calendar, MapPin, FileText, Stethoscope, ArrowLeft, Send, Zap, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import AddressMap from '../components/AddressMap';
 import { SERVICE_CATEGORIES } from '../../../shared/patientDashboardConfig';
 
@@ -96,10 +96,12 @@ export default function BookVisit() {
             });
             setSavedAddresses([res.data, ...savedAddresses]);
             setShowNewAddress(false);
-            // Auto select
-            update('location', res.data.address);
-            update('locationDetails', res.data);
-            update('addressId', res.data.id);
+            setForm((prev: any) => ({
+                ...prev,
+                location: res.data.address,
+                locationDetails: res.data,
+                addressId: res.data.id,
+            }));
             setNewAddress({
                 label: 'Home', address: '', location: null,
                 flatNumber: '', buildingName: '', floor: '', landmark: '', area: '', city: 'New Delhi', pincode: ''
@@ -164,10 +166,10 @@ export default function BookVisit() {
             {showNewAddress && (
                 <div style={{
                     position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-md)'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--space-md)', paddingBottom: 80
                 }}>
-                    <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-md)' }}>
+                    <div className="card" style={{ width: '100%', maxWidth: 500, maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
                             <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>Add New Address</h3>
                             <button className="btn btn-ghost btn-sm" onClick={() => setShowNewAddress(false)}>&times;</button>
                         </div>
@@ -185,50 +187,50 @@ export default function BookVisit() {
                                 }));
                             }} />
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
+                        <form onSubmit={e => { e.preventDefault(); handleSaveAddress(); }} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                             <input
                                 type="text" placeholder="Full Address (Auto-filled from map)"
-                                className="form-input"
+                                className="form-input" required
                                 value={newAddress.address}
                                 onChange={e => setNewAddress({ ...newAddress, address: e.target.value })}
                             />
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)' }}>
                                 <input
-                                    type="text" placeholder="Flat / House No *" className="form-input"
+                                    type="text" placeholder="Flat / House No" className="form-input" required
                                     value={newAddress.flatNumber}
                                     onChange={e => setNewAddress({ ...newAddress, flatNumber: e.target.value })}
                                 />
                                 <input
-                                    type="text" placeholder="Floor" className="form-input"
+                                    type="text" placeholder="Floor" className="form-input" required
                                     value={newAddress.floor}
                                     onChange={e => setNewAddress({ ...newAddress, floor: e.target.value })}
                                 />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-sm)' }}>
                                 <input
-                                    type="text" placeholder="Building / Society" className="form-input"
+                                    type="text" placeholder="Building / Society" className="form-input" required
                                     value={newAddress.buildingName}
                                     onChange={e => setNewAddress({ ...newAddress, buildingName: e.target.value })}
                                 />
                                 <input
-                                    type="text" placeholder="Landmark" className="form-input"
+                                    type="text" placeholder="Landmark" className="form-input" required
                                     value={newAddress.landmark}
                                     onChange={e => setNewAddress({ ...newAddress, landmark: e.target.value })}
                                 />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-sm)' }}>
                                 <input
-                                    type="text" placeholder="Area" className="form-input"
+                                    type="text" placeholder="Area" className="form-input" required
                                     value={newAddress.area}
                                     onChange={e => setNewAddress({ ...newAddress, area: e.target.value })}
                                 />
                                 <input
-                                    type="text" placeholder="City" className="form-input"
+                                    type="text" placeholder="City" className="form-input" required
                                     value={newAddress.city}
                                     onChange={e => setNewAddress({ ...newAddress, city: e.target.value })}
                                 />
                                 <input
-                                    type="text" placeholder="Pincode" className="form-input"
+                                    type="text" placeholder="Pincode" className="form-input" required
                                     value={newAddress.pincode}
                                     onChange={e => setNewAddress({ ...newAddress, pincode: e.target.value })}
                                 />
@@ -253,9 +255,9 @@ export default function BookVisit() {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 'var(--space-sm)', marginTop: 8, borderTop: '1px solid var(--border)' }}>
                                 <button type="button" onClick={() => setShowNewAddress(false)} className="btn btn-ghost btn-sm">Cancel</button>
-                                <button type="button" onClick={handleSaveAddress} className="btn btn-primary btn-sm">Save & Select</button>
+                                <button type="submit" className="btn btn-primary btn-sm">Save & Select</button>
                             </div>
-                        </div>
+                        </form>
                     </div>
                 </div>
             )}
@@ -362,7 +364,7 @@ export default function BookVisit() {
                     {/* Address Selection */}
                     <div className="form-group">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <label className="form-label" style={{ marginBottom: 0 }}><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Location</label>
+                            <label className="form-label" style={{ marginBottom: 0 }}><MapPin size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} /> Location <span style={{ color: 'var(--critical)' }}>*</span></label>
                             <button
                                 type="button"
                                 onClick={() => setShowNewAddress(true)}
@@ -447,11 +449,11 @@ export default function BookVisit() {
 
                         {instantCare.available ? (
                             <div style={{ fontSize: '0.75rem', color: form.isImmediate ? 'var(--primary)' : 'var(--text-secondary)' }}>
-                                <p style={{ fontWeight: 600 }}>⚡ {instantCare.message}</p>
+                                <p style={{ fontWeight: 600 }}><Zap size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {instantCare.message}</p>
                             </div>
                         ) : (
                             <div style={{ fontSize: '0.75rem', color: 'var(--critical)', fontWeight: 500 }}>
-                                <p>⚠️ {instantCare.message}</p>
+                                <p><AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {instantCare.message}</p>
                             </div>
                         )}
 

@@ -76,23 +76,22 @@ export default function LabDashboard() {
     const handleUploadReport = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedOrder) return;
-        if (!file && !reportUrl) {
-            addToast('error', 'Please select a file or enter a URL');
+        if (!file) {
+            addToast('error', 'Please select a file to upload');
             return;
         }
         setUploading(true);
         try {
-            let finalUrl = reportUrl;
-            if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
-                const uploadRes = await api.post('/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
-                // Store the fileId instead of the temporary signed URL
-                finalUrl = uploadRes.data.fileId;
-            }
-            await api.post(`/lab/order/${selectedOrder.id}/report`, { reportUrl: finalUrl });
+            // Upload file to GCS, get back persistent fileId
+            const formData = new FormData();
+            formData.append('file', file);
+            const uploadRes = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const fileId = uploadRes.data.fileId;
+
+            // Link the fileId to the lab order report
+            await api.post(`/lab/order/${selectedOrder.id}/report`, { fileId });
             addToast('success', 'Report uploaded successfully');
             setReportUrl('');
             setFile(null);
@@ -224,20 +223,14 @@ export default function LabDashboard() {
                                         </button>
                                     )}
                                     {order.status === 'report_ready' && order.labReport?.reportUrl && (
-                                        <button
-                                            onClick={async () => {
-                                                try {
-                                                    const urlOrId = order.labReport!.reportUrl;
-                                                    const isFileId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(urlOrId);
-                                                    const url = isFileId ? (await uploadApi.getFileUrl(urlOrId)).data.url : urlOrId;
-                                                    window.open(url, '_blank');
-                                                } catch (err) {
-                                                    console.error('Failed to open report:', err);
-                                                    addToast('error', 'Failed to load report');
-                                                }
-                                            }}
-                                            className="btn btn-secondary btn-sm"
-                                        >
+                                        <button onClick={async () => {
+                                            try {
+                                                const res = await (await import('../services/api')).labApi.getReportUrl(order.id);
+                                                window.open(res.data.url, '_blank');
+                                            } catch {
+                                                addToast('error', 'Failed to load report');
+                                            }
+                                        }} className="btn btn-secondary btn-sm">
                                             <FileText size={14} /> View Report
                                         </button>
                                     )}

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { adminApi } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { BarChart3, Users, Clock, Activity, FlaskConical, TrendingUp, UserPlus, FileText, Inbox, RefreshCw } from 'lucide-react';
+import { BarChart3, Users, Clock, Activity, FlaskConical, TrendingUp, UserPlus, FileText, Inbox, RefreshCw, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function AdminDashboard() {
@@ -149,7 +149,7 @@ export default function AdminDashboard() {
                                         <div>
                                             <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                                                 {s.patient?.name} — {s.serviceType}
-                                                {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
+                                                {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}><Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> IMMEDIATE</span>}
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{s.location}</div>
                                         </div>
@@ -180,7 +180,7 @@ export default function AdminDashboard() {
                                 <div>
                                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
                                         {s.patient?.name} — {s.serviceType}
-                                        {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>}
+                                        {s.isImmediate && <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}><Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> IMMEDIATE</span>}
                                     </div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                         Nurse: {s.nurse?.name || '—'} · Doctor: {s.doctor?.name || '—'}

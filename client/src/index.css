@@ -285,9 +285,9 @@ button {
 }
 
 .btn-sm {
-  min-height: 36px;
+  min-height: 40px;
   padding: 0 var(--space-md);
-  font-size: 0.813rem;
+  font-size: 1rem;
 }
 
 .btn-lg {
@@ -1749,4 +1749,9 @@ button {
     font-size: 0.75rem;
     min-height: 42px;
   }
+}
+
+.grecaptcha-badge {
+  /* hiding badge, added proper attribution in footer */
+  visibility: hidden !important;
 }

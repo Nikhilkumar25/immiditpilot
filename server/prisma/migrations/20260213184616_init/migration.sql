@@ -64,6 +64,10 @@ CREATE TABLE "ServiceRequest" (
     "status" "ServiceStatus" NOT NULL DEFAULT 'pending_nurse_assignment',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "hasProvidedMedication" BOOLEAN,
+    "requiredMedicationId" TEXT,
+    "requiredMedicationName" TEXT,
+    "medicationCost" DOUBLE PRECISION,
 
     CONSTRAINT "ServiceRequest_pkey" PRIMARY KEY ("id")
 );
@@ -392,6 +396,7 @@ CREATE TABLE "InventoryItem" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "sku" TEXT,
+    "category" TEXT NOT NULL DEFAULT 'General',
     "unit" TEXT NOT NULL,
     "currentStock" INTEGER NOT NULL DEFAULT 0,
     "reorderLevel" INTEGER NOT NULL DEFAULT 10,

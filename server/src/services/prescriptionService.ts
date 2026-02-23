@@ -1,12 +1,13 @@
 /**
  * Prescription Service
- * Handles prescription generation, PDF creation, versioning, and follow-up task management.
+ * Handles prescription generation, versioning, and follow-up task management.
+ * PDF is generated client-side using jsPDF — server only stores structured data.
  */
 
 import { prisma } from '../index';
 import { logAudit } from './auditService';
-import * as fs from 'fs';
-import * as path from 'path';
+import path from 'path';
+import fs from 'fs';
 
 interface MedicineEntry {
     name: string;
@@ -85,23 +86,7 @@ export async function generatePrescription(
             },
         });
 
-        // Generate new PDF
-        const pdfUrl = await generatePrescriptionPDF({
-            prescriptionId: existingPrescription.id,
-            doctor,
-            patient: service.patient,
-            service,
-            report,
-            diagnosis: data.diagnosis,
-            summaryNotes: data.summaryNotes || null,
-            vitalsSnapshot: vitals,
-            nurseObservations: report.nurseObservations,
-            medicines: data.medicinesJson,
-            followUpInstruction: data.followUpInstruction || null,
-            versionNumber: newVersionNum,
-        });
-
-        // Update existing prescription
+        // Update existing prescription (no pdfUrl — PDF generated client-side)
         const updatedPrescription = await prisma.prescription.update({
             where: { id: existingPrescription.id },
             data: {
@@ -111,7 +96,7 @@ export async function generatePrescription(
                 nurseObservations: report.nurseObservations,
                 medicinesJson: data.medicinesJson as any,
                 followUpInstruction: data.followUpInstruction || null,
-                pdfUrl,
+                pdfUrl: null,
                 versionNumber: newVersionNum,
             },
         });
@@ -122,25 +107,9 @@ export async function generatePrescription(
 
     // ============ NEW PRESCRIPTION ============
 
-    // 4. Generate the PDF
     const prescriptionId = require('crypto').randomUUID();
 
-    const pdfUrl = await generatePrescriptionPDF({
-        prescriptionId,
-        doctor,
-        patient: service.patient,
-        service,
-        report,
-        diagnosis: data.diagnosis,
-        summaryNotes: data.summaryNotes || null,
-        vitalsSnapshot: vitals,
-        nurseObservations: report.nurseObservations,
-        medicines: data.medicinesJson,
-        followUpInstruction: data.followUpInstruction || null,
-        versionNumber: 1,
-    });
-
-    // 5. Create prescription record
+    // Create prescription record (no pdfUrl — PDF generated client-side)
     const prescription = await prisma.prescription.create({
         data: {
             id: prescriptionId,
@@ -154,7 +123,7 @@ export async function generatePrescription(
             nurseObservations: report.nurseObservations,
             medicinesJson: data.medicinesJson as any,
             followUpInstruction: data.followUpInstruction || null,
-            pdfUrl,
+            pdfUrl: null,
             versionNumber: 1,
             patientNameSnapshot: service.patient.name,
             patientGenderSnapshot: service.patient.gender,
@@ -162,13 +131,13 @@ export async function generatePrescription(
         },
     });
 
-    // 6. Update ServiceRequest status
+    // Update ServiceRequest status
     await prisma.serviceRequest.update({
         where: { id: serviceId },
         data: { status: 'doctor_completed' as any },
     });
 
-    // 7. Create FollowUpTask if instruction is present
+    // Create FollowUpTask if instruction is present
     if (data.followUpInstruction) {
         await prisma.followUpTask.create({
             data: {
@@ -182,11 +151,12 @@ export async function generatePrescription(
         });
     }
 
-    // 8. Audit log
+    // Audit log
     await logAudit(doctorId, 'PRESCRIPTION_GENERATED', 'Prescription', prescription.id);
 
     return prescription;
 }
+
 
 
 /**
@@ -264,7 +234,7 @@ async function generatePrescriptionPDF(params: {
     const nurseObsSection = nurseObservations ? `
         <div class="section">
             <h3>SECTION 4 — NURSE OBSERVATIONS</h3>
-            <p>${nurseObservations.replace(/\n/g, '<br/>')}</p>
+            <p>${nurseObservations.replace(/\\n/g, '<br/>')}</p>
         </div>
     ` : '';
 
@@ -519,13 +489,13 @@ async function generatePrescriptionPDF(params: {
         ${service.doctorAction.advice ? `
         <div class="advice-box">
             <h4>General Advice</h4>
-            <p>${service.doctorAction.advice.replace(/\n/g, '<br/>')}</p>
+            <p>${service.doctorAction.advice.replace(/\\n/g, '<br/>')}</p>
         </div>
         ` : ''}
         ${service.doctorAction.medications ? `
         <div class="advice-box">
             <h4>Additional Medications / OTC</h4>
-            <p>${service.doctorAction.medications.replace(/\n/g, '<br/>')}</p>
+            <p>${service.doctorAction.medications.replace(/\\n/g, '<br/>')}</p>
         </div>
         ` : ''}
     </div>

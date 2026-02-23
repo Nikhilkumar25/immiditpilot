@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { serviceApi, adminApi } from '../../services/api';
-import { RefreshCw, MapPin, Clock, User2, AlertCircle } from 'lucide-react';
+import { RefreshCw, MapPin, Clock, User2, AlertCircle, UserRound, Zap } from 'lucide-react';
 import { useToast } from '../../context/ToastContext';
 
 export default function AdminLiveOps() {
@@ -93,7 +93,7 @@ export default function AdminLiveOps() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                             <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${statusColors[s.status] || '#999'}20`, color: statusColors[s.status] || '#999', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>{s.status.replace(/_/g, ' ')}</span>
 
-                            {s.nurse && <span style={{ fontSize: 12, color: '#6B7280' }}>👩‍⚕️ {s.nurse.name}</span>}
+                            {s.nurse && <span style={{ fontSize: 12, color: '#6B7280' }}><UserRound size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> {s.nurse.name}</span>}
 
                             {s.status === 'pending_nurse_assignment' && (
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -134,7 +134,7 @@ export default function AdminLiveOps() {
                                 </div>
                             )}
 
-                            {s.isImmediate && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: '#FFEBEE', color: '#E74C3C', fontWeight: 600 }}>⚡ INSTANT</span>}
+                            {s.isImmediate && <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 12, background: '#FFEBEE', color: '#E74C3C', fontWeight: 600 }}><Zap size={11} style={{ display: 'inline', verticalAlign: 'middle' }} /> INSTANT</span>}
                         </div>
                     </div>
                 ))}

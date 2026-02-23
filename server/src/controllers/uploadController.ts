@@ -2,8 +2,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { prisma } from '../index';
 import multer from 'multer';
-import path from 'path';
-import { uploadToGCS, getSignedDownloadUrl, deleteFromGCS, getLocalFilePath } from '../services/storageService';
+import { uploadToGCS, getSignedDownloadUrl, deleteFromGCS } from '../services/storageService';
 
 // Use memory storage — file buffer stays in memory, gets uploaded to GCS
 const memoryStorage = multer.memoryStorage();
@@ -94,35 +93,35 @@ export async function downloadFile(req: AuthRequest, res: Response): Promise<voi
             return;
         }
 
-        // Authorization: owner, admin, or medical staff can access
+        // Authorization: owner or admin can always access
         const isOwner = fileRecord.userId === userId;
-        const isPrivileged = ['admin', 'nurse', 'lab'].includes(userRole);
+        const isAdmin = userRole === 'admin';
 
         // Patients can access files linked to their own lab reports
-        let isPatientOwner = false;
-        if (!isOwner && !isPrivileged && userRole === 'patient') {
+        let isLinkedPatient = false;
+        if (!isOwner && !isAdmin && userRole === 'patient') {
             const linkedReport = await prisma.labReport.findFirst({
                 where: {
                     reportUrl: fileId,
                     labOrder: { patientId: userId },
                 },
             });
-            isPatientOwner = !!linkedReport;
+            isLinkedPatient = !!linkedReport;
         }
 
         // Doctors can access files linked to lab orders they referred
-        let isDoctorOwner = false;
-        if (!isOwner && !isPrivileged && userRole === 'doctor') {
+        let isLinkedDoctor = false;
+        if (!isOwner && !isAdmin && userRole === 'doctor') {
             const linkedReport = await prisma.labReport.findFirst({
                 where: {
                     reportUrl: fileId,
                     labOrder: { doctorId: userId },
                 },
             });
-            isDoctorOwner = !!linkedReport;
+            isLinkedDoctor = !!linkedReport;
         }
 
-        if (!isOwner && !isPrivileged && !isPatientOwner && !isDoctorOwner) {
+        if (!isOwner && !isAdmin && !isLinkedPatient && !isLinkedDoctor) {
             res.status(403).json({ error: 'You do not have permission to access this file' });
             return;
         }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { cmsApi } from '../../services/api';
 import { useToast } from '../../context/ToastContext';
-import { Plus, Pencil, Trash2, Search, Check, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Check, X, CheckCircle2 } from 'lucide-react';
 
 export default function AdminLabTests() {
     const [tests, setTests] = useState<any[]>([]);
@@ -61,7 +61,7 @@ export default function AdminLabTests() {
                                 <td style={td}><span style={{ background: '#F0F1F3', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{t.category}</span></td>
                                 <td style={td}>₹{t.price}</td>
                                 <td style={td}>{t.reportTAT || '—'}</td>
-                                <td style={td} title={t.preparationInstructions}>{t.preparationInstructions ? '✅' : '—'}</td>
+                                <td style={td} title={t.preparationInstructions}>{t.preparationInstructions ? <CheckCircle2 size={14} color="var(--success)" /> : '—'}</td>
                                 <td style={td}><span style={{ color: t.active ? 'green' : 'red', fontWeight: 600 }}>{t.active ? 'Yes' : 'No'}</span></td>
                                 <td style={td}>
                                     <button onClick={() => { setEditing({ ...t }); setShowForm(true); }} style={iconBtn}><Pencil size={14} /></button>

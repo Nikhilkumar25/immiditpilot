@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { serviceApi, labApi } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { Clock, User, MapPin, AlertCircle, FlaskConical, ChevronRight, Inbox, Zap } from 'lucide-react';
+import { Clock, User, MapPin, AlertCircle, FlaskConical, ChevronRight, Inbox, Zap, Siren } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 const TRIAGE_COLORS: Record<string, string> = { mild: 'var(--success)', moderate: 'var(--warning)', severe: 'var(--critical)' };
@@ -116,9 +116,9 @@ export default function NurseDashboard() {
                                                 <div style={{ flex: 1 }}>
                                                     <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                                         {c.patient?.name}
-                                                        {isEmergency && <span className="badge" style={{ background: '#dc3545', color: 'white', fontSize: '0.625rem' }}>🚨 EMERGENCY</span>}
+                                                        {isEmergency && <span className="badge" style={{ background: '#dc3545', color: 'white', fontSize: '0.625rem' }}><Siren size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> EMERGENCY</span>}
                                                         {c.isImmediate && !isEmergency && (
-                                                            <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>
+                                                            <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}><Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> IMMEDIATE</span>
                                                         )}
                                                     </div>
                                                     <div style={{ fontSize: '0.75rem', color: isEmergency ? '#dc3545' : 'var(--text-secondary)', fontWeight: isEmergency ? 600 : 400, marginTop: 2 }}>

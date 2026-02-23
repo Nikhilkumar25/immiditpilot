@@ -3,15 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { serviceApi, clinicalApi, labApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { ArrowLeft, User, Send, Check, Upload, Navigation, MapPin, Phone, Camera, Clock, AlertTriangle, Star, Trash2, Plus } from 'lucide-react';
+import { ArrowLeft, User, Send, Check, Upload, Navigation, MapPin, Phone, Camera, Clock, AlertTriangle, Star, Trash2, Plus, Siren, Zap, CheckCircle2, XCircle, Hospital, FlaskConical, Info } from 'lucide-react';
 import { getServiceFlowUI, NurseFormField } from '../services/ServiceFlowConfig';
 import RatingDialog from '../components/RatingDialog';
 import { ratingApi } from '../services/api';
+import { getIcon } from '../services/iconMap';
 
 const TRIAGE_OPTIONS = [
-    { value: 'mild', label: '🟢 Mild', color: 'var(--success)' },
-    { value: 'moderate', label: '🟡 Moderate', color: 'var(--warning)' },
-    { value: 'severe', label: '🔴 Severe', color: 'var(--critical)' },
+    { value: 'mild', label: 'Mild', color: 'var(--success)' },
+    { value: 'moderate', label: 'Moderate', color: 'var(--warning)' },
+    { value: 'severe', label: 'Severe', color: 'var(--critical)' },
 ];
 
 // ============ DYNAMIC FIELD RENDERER ============
@@ -145,7 +146,7 @@ function DynamicField({
                             {value ? (
                                 <div>
                                     <img src={value} alt={field.label} style={{ maxWidth: 200, maxHeight: 150, borderRadius: 'var(--radius-md)', marginBottom: 8 }} />
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>✅ Photo captured — tap to retake</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Photo captured — tap to retake</div>
                                 </div>
                             ) : (
                                 <div>
@@ -389,7 +390,7 @@ export default function NurseCaseView() {
                     fontSize: '0.875rem',
                     boxShadow: '0 4px 16px rgba(220, 53, 69, 0.4)',
                 }}>
-                    <AlertTriangle size={20} style={{ flexShrink: 0 }} /> 🚨 EMERGENCY — Prioritize this case
+                    <Siren size={20} style={{ flexShrink: 0 }} /> EMERGENCY — Prioritize this case
                 </div>
             )}
 
@@ -401,12 +402,12 @@ export default function NurseCaseView() {
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontSize: '1.5rem',
                     }}>
-                        {flowUI?.icon || <User size={22} />}
+                        {flowUI?.icon ? React.createElement(getIcon(flowUI.icon), { size: 22 }) : <User size={22} />}
                     </div>
                     <div style={{ flex: 1 }}>
                         <h2 style={{ fontSize: '1.125rem', fontWeight: 700 }}>{service.patient?.name}</h2>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                            {service.serviceType} · 📞 {service.patient?.phone}
+                            {service.serviceType} · <Phone size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {service.patient?.phone}
                         </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
@@ -414,7 +415,7 @@ export default function NurseCaseView() {
                             {service.status.replace(/_/g, ' ')}
                         </span>
                         {service.isImmediate && (
-                            <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}>⚡ IMMEDIATE</span>
+                            <span className="badge badge-warning" style={{ fontSize: '0.625rem' }}><Zap size={12} style={{ display: 'inline', verticalAlign: 'middle' }} /> IMMEDIATE</span>
                         )}
                     </div>
                 </div>
@@ -437,7 +438,7 @@ export default function NurseCaseView() {
                     }}>
                         <AlertTriangle size={20} style={{ flexShrink: 0, color: 'var(--warning)' }} />
                         <div>
-                            ⚠️ Patient does not have the medicine.
+                            <AlertTriangle size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Patient does not have the medicine.
                             <div style={{ color: 'var(--text)', fontSize: '0.75rem', marginTop: 2, fontWeight: 500 }}>
                                 Please carry from inventory: <strong>{service.requiredMedicationName}</strong>
                             </div>
@@ -450,7 +451,7 @@ export default function NurseCaseView() {
             {service.status === 'nurse_assigned' && (
                 <div style={{ display: 'flex', gap: 'var(--space-sm)', marginBottom: 'var(--space-lg)' }}>
                     <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={handleStartVisit}>
-                        🚗 Start Visit (En Route)
+                        <Navigation size={18} /> Start Visit (En Route)
                     </button>
                     {service.savedAddress?.lat && (
                         <a
@@ -487,7 +488,7 @@ export default function NurseCaseView() {
             {((service.status === 'nurse_on_the_way' || service.status === 'vitals_recorded') || editRequested) && showAssessmentForm && (
                 <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {editRequested ? <AlertTriangle size={18} color="var(--warning)" /> : flowUI?.icon}
+                        {editRequested ? <AlertTriangle size={18} color="var(--warning)" /> : (flowUI?.icon ? React.createElement(getIcon(flowUI.icon), { size: 18 }) : null)}
                         {editRequested ? 'Edit Clinical Assessment' : `Record Vitals — ${service.serviceType}`}
                     </h3>
 
@@ -508,7 +509,7 @@ export default function NurseCaseView() {
                             marginBottom: 'var(--space-lg)',
                             color: 'hsl(210, 80%, 35%)',
                         }}>
-                            ℹ️ {flowUI.autoCloseInfo}
+                            <Info size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {flowUI.autoCloseInfo}
                         </div>
                     )}
 
@@ -541,7 +542,7 @@ export default function NurseCaseView() {
                                 marginBottom: 'var(--space-sm)', textTransform: 'uppercase', letterSpacing: '0.05em',
                                 borderTop: '1px solid var(--border)', paddingTop: 'var(--space-md)',
                             }}>
-                                {flowUI?.icon} {service.serviceType} — Specific Fields
+                                {flowUI?.icon ? React.createElement(getIcon(flowUI.icon), { size: 16 }) : null} {service.serviceType} — Specific Fields
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)', marginBottom: 'var(--space-lg)' }}>
                                 {serviceFields.map((field) => (
@@ -556,7 +557,7 @@ export default function NurseCaseView() {
                     {/* Vitals & Triage Section */}
                     <div style={{ background: 'var(--bg)', padding: 'var(--space-md)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-lg)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-md)', textTransform: 'uppercase' }}>
-                            🏥 Triage & Priority *
+                            <Hospital size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Triage & Priority *
                         </div>
                         <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap' }}>
                             {TRIAGE_OPTIONS.map((opt) => (
@@ -629,7 +630,7 @@ export default function NurseCaseView() {
                         {submitting ? <div className="spinner" /> : (
                             <>
                                 <Send size={18} />
-                                {editRequested ? 'Submit Updated Assessment' : (flowUI?.urgentSubmit ? '🚨 URGENT Submit to Doctor' : 'Submit for Doctor Approval')}
+                                {editRequested ? 'Submit Updated Assessment' : (flowUI?.urgentSubmit ? <><Siren size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> URGENT Submit to Doctor</> : 'Submit for Doctor Approval')}
                             </>
                         )}
                     </button>
@@ -700,14 +701,14 @@ export default function NurseCaseView() {
             {/* Existing Report */}
             {hasReport && (
                 <div className="card" style={{ marginBottom: 'var(--space-lg)', borderLeft: '4px solid var(--success)' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}>✅ Clinical Report Submitted</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}><CheckCircle2 size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Clinical Report Submitted</h3>
                     <div className="vitals-grid" style={{ marginBottom: 'var(--space-md)' }}>
                         {Object.entries(service.clinicalReport?.vitalsJson || {}).map(([key, val]) => {
                             // Skip image data (base64) display in grid
                             if (typeof val === 'string' && val.startsWith('data:image')) return null;
                             return (
                                 <div key={key} className="vital-card">
-                                    <div className="vital-value">{typeof val === 'boolean' ? (val ? '✅' : '❌') : (val as string || '–')}</div>
+                                    <div className="vital-value">{typeof val === 'boolean' ? (val ? <CheckCircle2 size={16} color="var(--success)" /> : <XCircle size={16} color="var(--danger)" />) : (val as string || '–')}</div>
                                     <div className="vital-label">{key.replace(/([A-Z])/g, ' $1')}</div>
                                 </div>
                             );
@@ -736,7 +737,7 @@ export default function NurseCaseView() {
             {/* Lab Tasks */}
             {labTasks.length > 0 && (
                 <div className="card">
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>🧪 Sample Collection</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}><FlaskConical size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Sample Collection</h3>
                     {labTasks.map((task) => (
                         <div key={task.id}>
                             <div style={{ marginBottom: 'var(--space-md)', fontSize: '0.875rem' }}>
@@ -765,7 +766,7 @@ export default function NurseCaseView() {
                             {/* 📸 Sample Tube Photos */}
                             <div style={{ marginBottom: 'var(--space-lg)' }}>
                                 <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 'var(--space-sm)', letterSpacing: '0.05em' }}>
-                                    📸 Sample Tube Photos
+                                    <Camera size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Sample Tube Photos
                                 </div>
                                 <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', marginBottom: 'var(--space-sm)' }}>
                                     {samplePhotos.map((photo, i) => (
@@ -807,14 +808,14 @@ export default function NurseCaseView() {
                                     </label>
                                 </div>
                                 {samplePhotos.length > 0 && (
-                                    <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}>✅ {samplePhotos.length} photo{samplePhotos.length !== 1 ? 's' : ''} captured</div>
+                                    <div style={{ fontSize: '0.75rem', color: 'var(--success)' }}><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {samplePhotos.length} photo{samplePhotos.length !== 1 ? 's' : ''} captured</div>
                                 )}
                             </div>
 
                             {/* 📱 Barcode Scanner */}
                             <div style={{ marginBottom: 'var(--space-lg)' }}>
                                 <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 'var(--space-sm)', letterSpacing: '0.05em' }}>
-                                    📱 Tube / Box Barcodes
+                                    Tube / Box Barcodes
                                 </div>
 
                                 {/* Scanned barcodes list */}

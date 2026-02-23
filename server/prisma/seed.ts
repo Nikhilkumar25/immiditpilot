@@ -1,8 +1,48 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+    console.log('🌱 Seeding database...\n');
+
+    // ════════════════════════════════════════════
+    // PART 1: Dummy Users (from src/seed.ts)
+    // ════════════════════════════════════════════
+
+    const password = await bcrypt.hash('01010101', 12);
+    const adminPassword = await bcrypt.hash('10101010', 12);
+
+    // Seed users: 1 admin + 1 of each role
+    const dummyUsers = [
+        { email: 'admin@immidit.com', passwordHash: adminPassword, name: 'Admin User', phone: '0000000000', role: 'admin' as const },
+        { email: 'patient@immidit.com', passwordHash: password, name: 'Rahul Sharma', phone: '0000000001', role: 'patient' as const },
+        { email: 'nurse@immidit.com', passwordHash: password, name: 'Neha Singh', phone: '0000000002', role: 'nurse' as const },
+        { email: 'doctor@immidit.com', passwordHash: password, name: 'Dr. Amit Patel', phone: '0000000003', role: 'doctor' as const },
+        { email: 'lab@immidit.com', passwordHash: password, name: 'Lab Tech Arun', phone: '0000000004', role: 'lab' as const },
+    ];
+
+    for (const u of dummyUsers) {
+        await prisma.user.upsert({
+            where: { phone: u.phone },
+            update: {},
+            create: u,
+        });
+    }
+
+    console.log('✅ Seeded dummy users:');
+    console.log('─'.repeat(55));
+    for (const u of dummyUsers) {
+        console.log(`  ${u.role.padEnd(8)} | ${u.name.padEnd(22)} | ${u.phone}`);
+    }
+    console.log('─'.repeat(55));
+    console.log('  Admin password: 10101010');
+    console.log('  Other password: 01010101\n');
+
+    // ════════════════════════════════════════════
+    // PART 2: CMS & IMS Data
+    // ════════════════════════════════════════════
+
     console.log('🌱 Seeding CMS and IMS data...\n');
 
     // ═══ CMS SERVICES ═══
@@ -191,7 +231,7 @@ async function main() {
         ],
         skipDuplicates: true,
     });
-    console.log('✅ 16 inventory items seeded');
+    console.log('✅ 22 inventory items seeded');
 
     console.log('\n🎉 Seed complete!');
 }

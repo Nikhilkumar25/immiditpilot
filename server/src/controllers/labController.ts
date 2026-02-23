@@ -3,6 +3,7 @@ import { prisma, getServerIO } from '../index';
 import { AuthRequest } from '../middleware/auth';
 import { canTransitionLab } from '../services/statusEngine';
 import { logAudit } from '../services/auditService';
+import { getSignedDownloadUrl } from '../services/storageService';
 
 // Get all active lab tests for dropdown selection
 export async function getAvailableTests(_req: AuthRequest, res: Response): Promise<void> {
@@ -190,10 +191,17 @@ export async function confirmSampleReceipt(req: AuthRequest, res: Response): Pro
 export async function uploadLabReport(req: AuthRequest, res: Response): Promise<void> {
     try {
         const id = req.params.id as string;
-        const { reportUrl } = req.body;
+        const { fileId } = req.body;
 
-        if (!reportUrl) {
-            res.status(400).json({ error: 'reportUrl is required' });
+        if (!fileId) {
+            res.status(400).json({ error: 'fileId is required' });
+            return;
+        }
+
+        // Validate the file exists in FileUpload table
+        const fileRecord = await prisma.fileUpload.findUnique({ where: { id: fileId } });
+        if (!fileRecord) {
+            res.status(404).json({ error: 'File not found. Upload the file first via /api/upload' });
             return;
         }
 
@@ -206,10 +214,11 @@ export async function uploadLabReport(req: AuthRequest, res: Response): Promise<
             return;
         }
 
+        // Store fileId as reportUrl so we can resolve to a signed URL later
         const report = await prisma.labReport.create({
             data: {
                 labOrderId: id,
-                reportUrl,
+                reportUrl: fileId,
             },
         });
 
@@ -228,6 +237,57 @@ export async function uploadLabReport(req: AuthRequest, res: Response): Promise<
     } catch (err) {
         console.error('Upload lab report error:', err);
         res.status(500).json({ error: 'Failed to upload lab report' });
+    }
+}
+
+/**
+ * Get a fresh signed URL for a lab report.
+ * Access: patient (owner), referring doctor, uploading lab user, or admin.
+ * GET /lab/order/:id/report/url
+ */
+export async function getLabReportUrl(req: AuthRequest, res: Response): Promise<void> {
+    try {
+        const id = req.params.id as string;
+        const userId = req.user!.id;
+        const userRole = req.user!.role;
+
+        const order = await prisma.labOrder.findUnique({
+            where: { id },
+            include: { labReport: true },
+        });
+
+        if (!order || !order.labReport) {
+            res.status(404).json({ error: 'Lab report not found' });
+            return;
+        }
+
+        // The reportUrl field now stores a fileId
+        const fileId = order.labReport.reportUrl;
+        const fileRecord = await prisma.fileUpload.findUnique({ where: { id: fileId } });
+
+        if (!fileRecord) {
+            res.status(404).json({ error: 'Report file record not found' });
+            return;
+        }
+
+        // Access control: patient, referring doctor, uploading lab user, or admin
+        const isPatient = order.patientId === userId;
+        const isDoctor = order.doctorId === userId;
+        const isUploader = fileRecord.userId === userId;
+        const isAdmin = userRole === 'admin';
+
+        if (!isPatient && !isDoctor && !isUploader && !isAdmin) {
+            res.status(403).json({ error: 'You do not have permission to view this report' });
+            return;
+        }
+
+        // Generate fresh 10-minute signed URL
+        const signedUrl = await getSignedDownloadUrl(fileRecord.gcsPath, 10);
+
+        res.json({ url: signedUrl, filename: fileRecord.filename });
+    } catch (err) {
+        console.error('Get lab report URL error:', err);
+        res.status(500).json({ error: 'Failed to get report URL' });
     }
 }
 

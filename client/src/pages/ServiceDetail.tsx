@@ -4,7 +4,7 @@ import { serviceApi, prescriptionApi, labApi, uploadApi } from '../services/api'
 import { useSocket } from '../context/SocketContext';
 import CaseTracker from '../components/CaseTracker';
 import { generatePrescriptionPDF } from '../services/prescriptionPdf';
-import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle, Download, Pill, Activity, Check } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Clock, FileText, Stethoscope, FlaskConical, XCircle, Download, Pill, Activity, Check, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '../context/ToastContext';
 
@@ -298,40 +298,15 @@ export default function ServiceDetail() {
                         <div style={{ fontSize: '0.875rem', marginBottom: 12 }}><strong>Follow-up:</strong> {prescription.followUpInstruction}</div>
                     )}
 
-                    {prescription.pdfUrl ? (
-                        <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 8 }}>
-                            <button
-                                onClick={() => {
-                                    console.log('Download button clicked', prescription);
-                                    generatePrescriptionPDF(prescription);
-                                }}
-                                className="btn btn-primary"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                            >
-                                <Download size={16} /> Download Official PDF
-                            </button>
-                            <a
-                                href={`http://localhost:3001${prescription.pdfUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-secondary"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
-                            >
-                                <FileText size={16} /> View as Web Page
-                            </a>
-                        </div>
-                    ) : (
+                    <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 8 }}>
                         <button
-                            onClick={() => {
-                                console.log('Download button clicked (no pdfUrl)', prescription);
-                                generatePrescriptionPDF(prescription);
-                            }}
+                            onClick={() => generatePrescriptionPDF(prescription)}
                             className="btn btn-primary"
-                            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8 }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
                         >
                             <Download size={16} /> Download Prescription PDF
                         </button>
-                    )}
+                    </div>
                 </div>
             )}
 
@@ -445,18 +420,14 @@ export default function ServiceDetail() {
                                 )}
 
                                 {lo.labReport && (
-                                    <button
-                                        onClick={async () => {
-                                            try {
-                                                const url = await resolveUrl(lo.labReport!.reportUrl);
-                                                window.open(url, '_blank');
-                                            } catch {
-                                                addToast('error', 'Failed to load report');
-                                            }
-                                        }}
-                                        className="btn btn-secondary btn-sm"
-                                        style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                                    >
+                                    <button onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lo.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch {
+                                            addToast('error', 'Failed to load report');
+                                        }
+                                    }} className="btn btn-secondary btn-sm" style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                                         <Download size={14} /> View Report
                                     </button>
                                 )}

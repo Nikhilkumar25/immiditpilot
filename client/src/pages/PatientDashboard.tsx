@@ -5,12 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
 import CaseTracker from '../components/CaseTracker';
-import { Calendar, Plus, Clock, MapPin, ChevronRight, ChevronDown, FileText, Inbox, XCircle, FlaskConical, Star, X, Send, Download } from 'lucide-react';
+import { Calendar, Plus, Clock, MapPin, ChevronRight, ChevronDown, FileText, Inbox, XCircle, FlaskConical, Star, X, Send, Download, Zap, AlertTriangle, Hospital, IndianRupee, Lightbulb, Receipt, ClipboardEdit, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import RatingDialog from '../components/RatingDialog';
 import UseCaseCarousel from '../components/UseCaseCarousel';
 import { ratingApi, cmsApi, prescriptionApi } from '../services/api';
 import { generatePrescriptionPDF } from '../services/prescriptionPdf';
+import { getIcon } from '../services/iconMap';
 import { UseCase } from '../../../shared/types';
 import {
     QUICK_ACTIONS,
@@ -107,7 +108,7 @@ function BookingDrawer({ isOpen, service, category, onClose, onBook }: DrawerPro
                     <div>
                         <h3>{service.label}</h3>
                         <span style={{ fontSize: '0.688rem', color: 'var(--text-muted)' }}>
-                            {category.emoji} {category.title}
+                            {React.createElement(getIcon(category.icon), { size: 16 })} {category.title}
                         </span>
                     </div>
                     <button
@@ -139,7 +140,7 @@ function BookingDrawer({ isOpen, service, category, onClose, onBook }: DrawerPro
                     )}
 
                     {/* Price Breakdown */}
-                    <div className="section-label">💰 Price Breakdown</div>
+                    <div className="section-label"><IndianRupee size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Price Breakdown</div>
                     <div className="price-breakdown">
                         {pricing.lineItems.map((item, i) => (
                             <div key={i} className="price-line">
@@ -158,7 +159,7 @@ function BookingDrawer({ isOpen, service, category, onClose, onBook }: DrawerPro
                     {/* Smart Suggestions */}
                     {suggestions.length > 0 && (
                         <div style={{ marginBottom: 'var(--space-md)' }}>
-                            <div className="section-label">💡 Recommended</div>
+                            <div className="section-label"><Lightbulb size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Recommended</div>
                             {suggestions.map((s) => {
                                 const alreadyAdded = addOns.find(a => a.id === s.suggestedServiceId);
                                 return (
@@ -181,7 +182,7 @@ function BookingDrawer({ isOpen, service, category, onClose, onBook }: DrawerPro
                     {/* Added Add-ons */}
                     {addOns.length > 0 && (
                         <div style={{ marginBottom: 'var(--space-md)' }}>
-                            <div className="section-label">🧾 Add-ons</div>
+                            <div className="section-label"><Receipt size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Add-ons</div>
                             {addOns.map(addon => (
                                 <div key={addon.id} style={{
                                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -205,7 +206,7 @@ function BookingDrawer({ isOpen, service, category, onClose, onBook }: DrawerPro
 
                     {/* Symptoms */}
                     <div style={{ marginBottom: 'var(--space-md)' }}>
-                        <div className="section-label">📝 Symptoms (optional)</div>
+                        <div className="section-label"><ClipboardEdit size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Symptoms (optional)</div>
                         <textarea
                             className="form-textarea"
                             placeholder="Describe your symptoms briefly..."
@@ -357,7 +358,7 @@ export default function PatientDashboard() {
         <div>
             {/* ─── Header ─── */}
             <div className="page-header" style={{ marginBottom: 'var(--space-lg)' }}>
-                <h1 className="page-title" style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)' }}>Welcome back, {user?.name?.split(' ')[0]} 👋</h1>
+                <h1 className="page-title" style={{ fontSize: 'clamp(1.25rem, 5vw, 1.75rem)' }}>Welcome back, {user?.name?.split(' ')[0]}</h1>
                 <p className="page-subtitle" style={{ fontSize: '0.875rem' }}>Book services, track visits, and stay updated.</p>
             </div>
 
@@ -406,7 +407,7 @@ export default function PatientDashboard() {
             {/* ─── Pending Lab Confirmations ─── */}
             {pendingLabs.length > 0 && (
                 <div style={{ marginBottom: 'var(--space-xl)' }}>
-                    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}>⚠️ Lab Tests Awaiting Confirmation</h2>
+                    <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}><AlertTriangle size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Lab Tests Awaiting Confirmation</h2>
                     {pendingLabs.map((lab) => (
                         <div key={lab.id} className="card" style={{ marginBottom: 'var(--space-sm)', borderLeft: '4px solid var(--warning)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -443,14 +444,17 @@ export default function PatientDashboard() {
                                     <div style={{ fontWeight: 600 }}>{(lab.testsJson as any[])?.map((t: any) => t.name).join(', ')}</div>
                                     <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>Ready for your review</div>
                                 </div>
-                                <a
-                                    href={lab.labReport?.reportUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lab.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch { }
+                                    }}
                                     className="btn btn-secondary btn-sm"
                                 >
                                     <FileText size={14} /> View Report
-                                </a>
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -461,7 +465,7 @@ export default function PatientDashboard() {
             {/* SECTION 1: QUICK ACTIONS                   */}
             {/* ═══════════════════════════════════════════ */}
             <div style={{ marginBottom: 'var(--space-xl)' }}>
-                <h2 className="section-label">⚡ Quick Actions</h2>
+                <h2 className="section-label"><Zap size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Quick Actions</h2>
                 <div className="quick-actions">
                     {QUICK_ACTIONS.map((qa) => (
                         <div
@@ -469,7 +473,7 @@ export default function PatientDashboard() {
                             className="quick-action-pill"
                             onClick={() => handleQuickAction(qa.categoryId, qa.serviceId)}
                         >
-                            <span className="pill-emoji">{qa.emoji}</span>
+                            <span className="pill-emoji">{React.createElement(getIcon(qa.icon), { size: 18 })}</span>
                             <span className="pill-label">{qa.label}</span>
                         </div>
                     ))}
@@ -480,7 +484,7 @@ export default function PatientDashboard() {
             {/* SECTION 2: SERVICE CATEGORIES ACCORDION     */}
             {/* ═══════════════════════════════════════════ */}
             <div style={{ marginBottom: 'var(--space-xl)' }}>
-                <h2 className="section-label">🏥 What Do You Need Help With?</h2>
+                <h2 className="section-label"><Hospital size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> What Do You Need Help With?</h2>
                 <div className="accordion-section">
                     {SERVICE_CATEGORIES.map((cat) => {
                         const isOpen = openCategoryId === cat.id;
@@ -496,7 +500,7 @@ export default function PatientDashboard() {
                                     style={isOpen ? { background: cat.colorLight } : undefined}
                                 >
                                     <div className="accordion-header-left">
-                                        <span className="acc-emoji">{cat.emoji}</span>
+                                        <span className="acc-emoji">{React.createElement(getIcon(cat.icon), { size: 20 })}</span>
                                         <span className="acc-title">{cat.title}</span>
                                     </div>
                                     <ChevronDown size={18} className="accordion-chevron" />
@@ -521,21 +525,6 @@ export default function PatientDashboard() {
                             </div>
                         );
                     })}
-                </div>
-            </div>
-
-            {/* ═══════════════════════════════════════════ */}
-            {/* TRUST ELEMENTS                              */}
-            {/* ═══════════════════════════════════════════ */}
-            <div style={{ marginBottom: 'var(--space-xl)' }}>
-                <h2 className="section-label">🔒 Why Immidit?</h2>
-                <div className="trust-badges">
-                    {TRUST_ELEMENTS.map((te, i) => (
-                        <div key={i} className="trust-badge">
-                            <span className="trust-emoji">{te.emoji}</span>
-                            <span className="trust-text">{te.label}</span>
-                        </div>
-                    ))}
                 </div>
             </div>
 

@@ -3,17 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { serviceApi, doctorApi, labApi, prescriptionApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { ArrowLeft, User, Send, Check, Video, FlaskConical, FileText, Hospital, Calendar, AlertTriangle, Star, Plus, Trash2, Download, Pill, Search, X } from 'lucide-react';
+import { ArrowLeft, User, Send, Check, Video, FlaskConical, FileText, Hospital, Calendar, AlertTriangle, Star, Plus, Trash2, Download, Pill, Search, X, Siren, Phone, Bandage, Syringe, Microscope, CheckCircle2, XCircle, Stethoscope, Home } from 'lucide-react';
+import { getIcon } from '../services/iconMap';
 import { getServiceFlowUI } from '../services/ServiceFlowConfig';
+import { generatePrescriptionPDF } from '../services/prescriptionPdf';
 import RatingDialog from '../components/RatingDialog';
 import VideoCall from '../components/VideoCall';
 import { ratingApi } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 
 const EMERGENCY_ACTIONS = [
-    { value: 'hospital_referral', label: '🏥 Hospital Referral', color: '#dc3545', description: 'Refer patient to hospital for emergency care' },
-    { value: 'immediate_prescription', label: '💊 Immediate Prescription', color: '#fd7e14', description: 'Prescribe immediate medication' },
-    { value: 'continue_care', label: '🏠 Continue Home Care', color: '#28a745', description: 'Continue monitoring with updated plan' },
+    { value: 'hospital_referral', label: 'Hospital Referral', color: '#dc3545', description: 'Refer patient to hospital for emergency care', icon: Hospital },
+    { value: 'immediate_prescription', label: 'Immediate Prescription', color: '#fd7e14', description: 'Prescribe immediate medication', icon: Pill },
+    { value: 'continue_care', label: 'Continue Home Care', color: '#28a745', description: 'Continue monitoring with updated plan', icon: Home },
 ];
 
 export default function DoctorCaseView() {
@@ -277,7 +279,7 @@ export default function DoctorCaseView() {
                     animation: 'pulse 2s infinite',
                     boxShadow: '0 4px 16px rgba(220, 53, 69, 0.4)',
                 }}>
-                    <AlertTriangle size={22} /> 🚨 EMERGENCY ASSESSMENT — Immediate Doctor Action Required
+                    <Siren size={22} /> EMERGENCY ASSESSMENT — Immediate Doctor Action Required
                 </div>
             )}
 
@@ -294,7 +296,7 @@ export default function DoctorCaseView() {
                     <div style={{ flex: 1 }}>
                         <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>{service.patient?.name}</h2>
                         <div style={{ fontSize: '0.813rem', color: 'var(--text-secondary)' }}>
-                            {service.serviceType} · 📞 {service.patient?.phone}
+                            {service.serviceType} · <Phone size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> {service.patient?.phone}
                         </div>
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -324,7 +326,7 @@ export default function DoctorCaseView() {
                             if (typeof val === 'string' && val.startsWith('data:image')) return null;
                             return (
                                 <div key={key} className="vital-card">
-                                    <div className="vital-value">{typeof val === 'boolean' ? (val ? '✅' : '❌') : (val as string || '–')}</div>
+                                    <div className="vital-value">{typeof val === 'boolean' ? (val ? <CheckCircle2 size={16} color="var(--success)" /> : <XCircle size={16} color="var(--danger)" />) : (val as string || '–')}</div>
                                     <div className="vital-label">{key.replace(/([A-Z])/g, ' $1')}</div>
                                 </div>
                             );
@@ -372,7 +374,7 @@ export default function DoctorCaseView() {
                     ) : vitalsJson.prescriptionPhoto && (
                         <div style={{ marginBottom: 'var(--space-md)' }}>
                             <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)', textTransform: 'uppercase' }}>
-                                📄 Uploaded Prescription from Patient
+                                <FileText size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Uploaded Prescription from Patient
                             </div>
                             <img src={vitalsJson.prescriptionPhoto as string} alt="Prescription"
                                 style={{ maxWidth: '100%', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', cursor: 'zoom-in' }}
@@ -384,7 +386,7 @@ export default function DoctorCaseView() {
                     {service.serviceType === 'Wound Dressing' && (
                         <div style={{ marginBottom: 'var(--space-md)' }}>
                             <div style={{ fontSize: '0.813rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 'var(--space-sm)', textTransform: 'uppercase' }}>
-                                🩹 Wound Images — Before / After
+                                <Bandage size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Wound Images — Before / After
                             </div>
                             <div style={{ display: 'flex', gap: 'var(--space-md)', flexWrap: 'wrap' }}>
                                 {vitalsJson.woundPhotoBefore && (
@@ -424,7 +426,7 @@ export default function DoctorCaseView() {
                             </span>
                             {vitalsJson.reactionStatus === 'none' && (
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                                    ✅ No adverse reaction — case auto-closed
+                                    <CheckCircle2 size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> No adverse reaction — case auto-closed
                                 </div>
                             )}
                         </div>
@@ -433,11 +435,11 @@ export default function DoctorCaseView() {
                     {/* IV Therapy infusion summary */}
                     {service.serviceType === 'IV Therapy' && (
                         <div style={{ padding: 'var(--space-md)', background: 'hsl(280, 60%, 96%)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--space-md)' }}>
-                            <strong>💉 Infusion Summary:</strong>
+                            <strong><Syringe size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Infusion Summary:</strong>
                             <div style={{ fontSize: '0.875rem', marginTop: 4 }}>
                                 Start: {vitalsJson.infusionStartTime || '–'} | End: {vitalsJson.infusionEndTime || 'In progress'}
                             </div>
-                            {vitalsJson.prescriptionVerified && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: 4 }}>✅ Prescription verified</div>}
+                            {vitalsJson.prescriptionVerified && <div style={{ fontSize: '0.75rem', color: 'var(--success)', marginTop: 4 }}><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Prescription verified</div>}
                         </div>
                     )}
 
@@ -448,11 +450,11 @@ export default function DoctorCaseView() {
                             background: vitalsJson.infectionSigns === 'none' ? 'hsl(145, 63%, 95%)' : 'hsl(0, 80%, 95%)',
                             border: `1px solid ${vitalsJson.infectionSigns === 'none' ? 'var(--success)' : 'var(--critical)'}`,
                         }}>
-                            <strong>🔬 Infection Signs:</strong>{' '}
+                            <strong><Microscope size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Infection Signs:</strong>{' '}
                             <span style={{ fontWeight: 700 }}>{(vitalsJson.infectionSigns || 'none').replace(/_/g, ' ')}</span>
                             <div style={{ fontSize: '0.875rem', marginTop: 4 }}>
                                 Urine output: {vitalsJson.urineOutput || '–'} ml |
-                                Catheter changed: {vitalsJson.catheterChanged ? '✅ Yes' : '❌ No'}
+                                Catheter changed: {vitalsJson.catheterChanged ? <><CheckCircle2 size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Yes</> : <><XCircle size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> No</>}
                             </div>
                         </div>
                     )}
@@ -563,7 +565,7 @@ export default function DoctorCaseView() {
             {(!existingAction?.id || (existingAction.procedureApproved && service.status === 'awaiting_doctor_review')) && (
                 <div className="card" style={{ marginBottom: 'var(--space-lg)' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-lg)' }}>
-                        {flowUI?.icon || '🩺'} Your Final Assessment — {service.serviceType}
+                        {React.createElement(getIcon(flowUI?.icon || 'Stethoscope'), { size: 20 })} Your Final Assessment — {service.serviceType}
                     </h3>
 
                     {/* ============ CLINICAL HISTORY (Doctor fills) ============ */}
@@ -604,7 +606,7 @@ export default function DoctorCaseView() {
                     {flowUI?.isEmergency && (
                         <div style={{ marginBottom: 'var(--space-lg)' }}>
                             <label className="form-label" style={{ color: '#dc3545', fontWeight: 700 }}>
-                                🚨 Emergency Action Required *
+                                <Siren size={14} style={{ display: 'inline', verticalAlign: 'middle' }} /> Emergency Action Required *
                             </label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-sm)' }}>
                                 {EMERGENCY_ACTIONS.map((action) => (
@@ -889,7 +891,7 @@ export default function DoctorCaseView() {
                         {submitting ? <div className="spinner" /> : (
                             <>
                                 <Send size={18} />
-                                {flowUI?.isEmergency ? '🚨 Submit Emergency Assessment' : 'Submit Assessment'}
+                                {flowUI?.isEmergency ? <><Siren size={16} style={{ display: 'inline', verticalAlign: 'middle' }} /> Submit Emergency Assessment</> : 'Submit Assessment'}
                             </>
                         )}
                     </button>
@@ -899,7 +901,7 @@ export default function DoctorCaseView() {
             {/* Existing Action */}
             {existingAction && (
                 <div className="card" style={{ marginBottom: 'var(--space-lg)', borderLeft: '4px solid var(--success)' }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}>✅ Your Assessment</h3>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 'var(--space-md)' }}><CheckCircle2 size={18} style={{ display: 'inline', verticalAlign: 'middle' }} /> Your Assessment</h3>
                     <div style={{ fontSize: '0.875rem', marginBottom: 12 }}><strong>Diagnosis:</strong> {existingAction.diagnosis}</div>
                     {existingAction.advice && <div style={{ fontSize: '0.875rem', marginBottom: 12 }}><strong>Advice:</strong> {existingAction.advice}</div>}
                     {existingAction.medications && <div style={{ fontSize: '0.875rem', marginBottom: 12 }}><strong>Medications:</strong> {existingAction.medications}</div>}
@@ -1020,17 +1022,13 @@ export default function DoctorCaseView() {
                         <strong>Diagnosis:</strong> {prescription.diagnosis}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                        {prescription.pdfUrl && (
-                            <a
-                                href={`http://localhost:3001${prescription.pdfUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-primary btn-sm"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                            >
-                                <Download size={16} /> Download Prescription
-                            </a>
-                        )}
+                        <button
+                            onClick={() => generatePrescriptionPDF(prescription)}
+                            className="btn btn-primary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                            <Download size={16} /> Download Prescription PDF
+                        </button>
                         {/* Regenerate button — always available so doctor can update after lab results */}
                         <button
                             className="btn btn-secondary btn-sm"
@@ -1043,14 +1041,14 @@ export default function DoctorCaseView() {
                             disabled={generatingPdf}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         >
-                            {generatingPdf ? <div className="spinner" /> : <><FileText size={14} /> Update Prescription</>}
+                            {/* {generatingPdf ? <div className="spinner" /> : <><FileText size={14} /> Update Prescription</>} */}
                         </button>
                     </div>
-                    {prescription.versions && prescription.versions.length > 0 && (
+                    {/* {prescription.versions && prescription.versions.length > 0 && (
                         <div style={{ marginTop: 'var(--space-md)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                             Previous versions: {prescription.versions.length}
                         </div>
-                    )}
+                    )} */}
                 </div>
             )}
 
@@ -1072,9 +1070,14 @@ export default function DoctorCaseView() {
                             {/* Review form for reports */}
                             {lo.labReport && !lo.labReport.doctorReviewNotes && (
                                 <div style={{ marginTop: 8 }}>
-                                    <a href={lo.labReport.reportUrl} target="_blank" rel="noopener" className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }}>
+                                    <button onClick={async () => {
+                                        try {
+                                            const res = await labApi.getReportUrl(lo.id);
+                                            window.open(res.data.url, '_blank');
+                                        } catch { }
+                                    }} className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }}>
                                         View Report
-                                    </a>
+                                    </button>
                                     <div className="form-group" style={{ marginTop: 8 }}>
                                         <textarea className="form-textarea" placeholder="Your review notes..."
                                             style={{ minHeight: 60 }}
