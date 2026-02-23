@@ -60,8 +60,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-// Serve static uploads (for local dev fallback)
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Files are served exclusively through signed URLs (no static file serving)
 
 // Cloud Run: trust proxy for correct IP in rate limiting
 app.set('trust proxy', true);

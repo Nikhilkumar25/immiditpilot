@@ -180,12 +180,14 @@ export const labApi = {
     confirmOrder: (id: string, confirmedTests?: string[]) => api.patch(`/lab/order/${id}/confirm`, { confirmedTests }),
     collectSample: (id: string, checklist: any, samplePhotos?: string[], barcodes?: any[]) =>
         api.patch(`/lab/order/${id}/collect`, { checklist, samplePhotos, barcodes }),
-    uploadReport: (id: string, reportUrl: string) => api.post(`/lab/order/${id}/report`, { reportUrl }),
+    uploadReport: (id: string, fileId: string) => api.post(`/lab/order/${id}/report`, { fileId }),
     reviewReport: (id: string, doctorReviewNotes: string) => api.patch(`/lab/order/${id}/review`, { doctorReviewNotes }),
     getPatientOrders: (patientId: string) => cachedGet(`/lab/orders/patient/${patientId}`, () => api.get(`/lab/orders/patient/${patientId}`)),
     getNurseTasks: () => cachedGet('/lab/orders/nurse', () => api.get('/lab/orders/nurse')),
     getDoctorReviews: () => cachedGet('/lab/orders/doctor', () => api.get('/lab/orders/doctor')),
     receiveSample: (id: string) => api.patch(`/lab/order/${id}/receive`),
+    /** Get a fresh signed URL for a lab report (10 min TTL) */
+    getReportUrl: (labOrderId: string) => api.get<{ url: string; filename: string }>(`/lab/order/${labOrderId}/report/url`),
 };
 
 // ============ FILE UPLOAD (GCS) ============
@@ -212,7 +214,7 @@ export const adminApi = {
     getAuditLogs: () => cachedGet('/admin/audit-logs', () => api.get('/admin/audit-logs')),
     assignNurse: (serviceId: string, nurseId: string) => api.patch(`/admin/services/${serviceId}/assign-nurse`, { nurseId }),
     updateStatus: (serviceId: string, status: string) => api.patch(`/admin/services/${serviceId}/status`, { status }),
-    uploadLabReport: (labOrderId: string, reportUrl: string) => api.post(`/admin/lab-orders/${labOrderId}/report`, { reportUrl }),
+    uploadLabReport: (labOrderId: string, fileId: string) => api.post(`/admin/lab-orders/${labOrderId}/report`, { fileId }),
     getSystemConfig: () => api.get('/admin/config'),
     updateSystemConfig: (data: any) => api.patch('/admin/config', data),
     updateUserRole: (userId: string, role: string) => api.patch(`/admin/users/${userId}/role`, { role }),

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { useToast } from '../context/ToastContext';
-import { labApi, uploadApi } from '../services/api';
+import { labApi } from '../services/api';
 import {
     FileText, Download, FlaskConical, Inbox,
     RefreshCw, Clock, User, AlertCircle, Microscope,
@@ -48,21 +48,15 @@ export default function PatientLabReports() {
         return () => { socket.off('report_uploaded'); socket.off('lab_order_created'); socket.off('status_update'); };
     }, [socket, fetchOrders, addToast]);
 
-    const resolveUrl = async (reportUrl: string): Promise<string> => {
-        const isFileId = /^[0-9a-f-]{36}$/i.test(reportUrl);
-        if (isFileId) {
-            const res = await uploadApi.getFileUrl(reportUrl);
-            return res.data.url;
-        }
-        return reportUrl;
-    };
-
-    const openReport = async (reportUrl: string) => {
+    const openReport = async (labOrderId: string) => {
         try {
-            const url = await resolveUrl(reportUrl);
-            window.open(url, '_blank');
+            setDownloading(labOrderId);
+            const res = await labApi.getReportUrl(labOrderId);
+            window.open(res.data.url, '_blank');
         } catch {
             addToast('error', 'Failed to load report');
+        } finally {
+            setDownloading(null);
         }
     };
 
@@ -174,7 +168,7 @@ export default function PatientLabReports() {
                                                         background: 'var(--primary-bg)', color: 'var(--primary)',
                                                         border: 'none', fontWeight: 600, gap: 4,
                                                     }}
-                                                    onClick={() => openReport(order.labReport!.reportUrl)}
+                                                    onClick={() => openReport(order.id)}
                                                 >
                                                     <ExternalLink size={13} /> View
                                                 </button>

@@ -76,22 +76,22 @@ export default function LabDashboard() {
     const handleUploadReport = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedOrder) return;
-        if (!file && !reportUrl) {
-            addToast('error', 'Please select a file or enter a URL');
+        if (!file) {
+            addToast('error', 'Please select a file to upload');
             return;
         }
         setUploading(true);
         try {
-            let finalUrl = reportUrl;
-            if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
-                const uploadRes = await api.post('/upload', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                });
-                finalUrl = uploadRes.data.url;
-            }
-            await api.post(`/lab/order/${selectedOrder.id}/report`, { reportUrl: finalUrl });
+            // Upload file to GCS, get back persistent fileId
+            const formData = new FormData();
+            formData.append('file', file);
+            const uploadRes = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+            const fileId = uploadRes.data.fileId;
+
+            // Link the fileId to the lab order report
+            await api.post(`/lab/order/${selectedOrder.id}/report`, { fileId });
             addToast('success', 'Report uploaded successfully');
             setReportUrl('');
             setFile(null);
