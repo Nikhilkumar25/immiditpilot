@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ArrowLeft, User, Send, Check, Video, FlaskConical, FileText, Hospital, Calendar, AlertTriangle, Star, Plus, Trash2, Download, Pill, Search, X } from 'lucide-react';
 import { getServiceFlowUI } from '../services/ServiceFlowConfig';
+import { generatePrescriptionPDF } from '../services/prescriptionPdf';
 import RatingDialog from '../components/RatingDialog';
 import VideoCall from '../components/VideoCall';
 import { ratingApi } from '../services/api';
@@ -1020,17 +1021,13 @@ export default function DoctorCaseView() {
                         <strong>Diagnosis:</strong> {prescription.diagnosis}
                     </div>
                     <div style={{ display: 'flex', gap: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center', marginTop: 8 }}>
-                        {prescription.pdfUrl && (
-                            <a
-                                href={`http://localhost:3001${prescription.pdfUrl}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="btn btn-primary btn-sm"
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                            >
-                                <Download size={16} /> Download Prescription
-                            </a>
-                        )}
+                        <button
+                            onClick={() => generatePrescriptionPDF(prescription)}
+                            className="btn btn-primary btn-sm"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                            <Download size={16} /> Download Prescription PDF
+                        </button>
                         {/* Regenerate button — always available so doctor can update after lab results */}
                         <button
                             className="btn btn-secondary btn-sm"
